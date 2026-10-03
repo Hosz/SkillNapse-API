@@ -42,6 +42,10 @@ CYGWIN* | MINGW*)
 esac
 
 # set JAVACMD and JAVACCMD
+if [ -z "${JAVA_HOME-}" ] && [ -d "$HOME/.jdks/jdk-21.0.12.1+1" ]; then
+  export JAVA_HOME="$HOME/.jdks/jdk-21.0.12.1+1"
+fi
+
 set_java_home() {
   # For Cygwin and MinGW, ensure paths are in Unix format before anything is touched
   if [ -n "${JAVA_HOME-}" ]; then
