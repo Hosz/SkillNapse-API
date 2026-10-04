@@ -17,6 +17,6 @@ public record RegistroRequest(
 
         @NotBlank
         @NotNull
-        String password
+        String senha
 ) {
 }

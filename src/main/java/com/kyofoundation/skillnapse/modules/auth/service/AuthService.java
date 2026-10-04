@@ -34,7 +34,7 @@ public class AuthService {
     public RegistroResponse register(RegistroRequest request) {
         usuarioValidator.validarRegistro(request);
 
-        String senhaHash = passwordEncoder.encode(request.password());
+        String senhaHash = passwordEncoder.encode(request.senha());
         Usuario usuarioRegistrado = AuthMapper.registrar(request, senhaHash);
         usuarioRepository.save(usuarioRegistrado);
 

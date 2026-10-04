@@ -38,10 +38,10 @@ public class UsuarioValidator {
             throw new BadRequestException("O e-mail informado possui um formato inválido.");
         }
         validarEmailDisponivel(request.email());
-        if (request.password() == null || request.password().isBlank()) {
+        if (request.senha() == null || request.senha().isBlank()) {
             throw new BadRequestException("É necessário definir uma senha para se registrar.");
         }
-        if (request.password().trim().length() < SENHA_MIN_LENGTH) {
+        if (request.senha().trim().length() < SENHA_MIN_LENGTH) {
             throw new BadRequestException("A senha deve conter no mínimo " + SENHA_MIN_LENGTH + " caracteres.");
         }
     }
