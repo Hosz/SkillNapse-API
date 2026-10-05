@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/ai")
 @RequiredArgsConstructor
 @Tag(name = "Inteligência Artificial", description = "Endpoints para orquestração desacoplada de IA com LLMs (BYOK)")
+@SecurityRequirement(name = "bearerAuth")
 public class AiController {
 
     private final AiOrchestratorService aiOrchestratorService;
@@ -40,6 +42,11 @@ public class AiController {
             @ApiResponse(
                     responseCode = "400",
                     description = "Requisição inválida (prompt vazio ou temperatura fora do range)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Não autorizado / Token JWT ausente ou inválido",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))
             )
     })
