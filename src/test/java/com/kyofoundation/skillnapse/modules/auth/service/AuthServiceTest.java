@@ -99,6 +99,7 @@ class AuthServiceTest {
 
         when(jwtService.gerarAccessToken(usuario)).thenReturn("mock.access.jwt");
         when(jwtService.gerarRefreshToken()).thenReturn("mock-refresh-token-uuid");
+        when(jwtService.hashToken("mock-refresh-token-uuid")).thenReturn("hash-mock-refresh-token-uuid");
         when(jwtService.calcularExpiracaoRefreshToken()).thenReturn(Instant.now().plusSeconds(604800));
         when(jwtService.getAccessTokenExpirationSeconds()).thenReturn(3600L);
 
@@ -113,7 +114,9 @@ class AuthServiceTest {
         assertThat(response.tokenType()).isEqualTo("Bearer");
         assertThat(response.expiresIn()).isEqualTo(3600L);
 
-        verify(tokenAtualizacaoRepository).save(any(TokenAtualizacao.class));
+        ArgumentCaptor<TokenAtualizacao> tokenCaptor = ArgumentCaptor.forClass(TokenAtualizacao.class);
+        verify(tokenAtualizacaoRepository).save(tokenCaptor.capture());
+        assertThat(tokenCaptor.getValue().getToken()).isEqualTo("hash-mock-refresh-token-uuid");
     }
 
     @Test
@@ -131,9 +134,10 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Deve renovar token com sucesso através de rotação de refresh token")
+    @DisplayName("Deve renovar token com sucesso através de rotação de refresh token com hash e lock")
     void deveRenovarTokenComSucesso() {
         String tokenAntigo = "refresh-token-antigo";
+        String hashAntigo = "hash-refresh-token-antigo";
         UUID usuarioId = UUID.randomUUID();
         Usuario usuario = Usuario.builder()
                 .id(usuarioId)
@@ -143,17 +147,19 @@ class AuthServiceTest {
                 .build();
 
         TokenAtualizacao tokenSalvo = TokenAtualizacao.builder()
-                .token(tokenAntigo)
+                .token(hashAntigo)
                 .usuario(usuario)
                 .expiraEm(Instant.now().plusSeconds(3600))
                 .revogado(false)
                 .build();
 
-        when(tokenAtualizacaoRepository.findByTokenAndRevogadoFalse(tokenAntigo)).thenReturn(Optional.of(tokenSalvo));
+        when(jwtService.hashToken(tokenAntigo)).thenReturn(hashAntigo);
+        when(tokenAtualizacaoRepository.findByTokenForUpdate(hashAntigo)).thenReturn(Optional.of(tokenSalvo));
         doNothing().when(usuarioValidator).validarUsuarioAtivo(usuario);
 
         when(jwtService.gerarAccessToken(usuario)).thenReturn("novo.access.jwt");
         when(jwtService.gerarRefreshToken()).thenReturn("novo-refresh-token-uuid");
+        when(jwtService.hashToken("novo-refresh-token-uuid")).thenReturn("hash-novo-refresh-token-uuid");
         when(jwtService.calcularExpiracaoRefreshToken()).thenReturn(Instant.now().plusSeconds(604800));
         when(jwtService.getAccessTokenExpirationSeconds()).thenReturn(3600L);
 
@@ -166,16 +172,48 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Deve detectar tentativa de reutilização de token revogado e revogar todas as sessões do usuário")
+    void deveDetectarReutilizacaoDeTokenERevogarSessoes() {
+        String tokenRevogado = "refresh-token-ja-usado";
+        String hashRevogado = "hash-token-ja-usado";
+        UUID usuarioId = UUID.randomUUID();
+        Usuario usuario = Usuario.builder()
+                .id(usuarioId)
+                .nome("Aluno Kyo")
+                .email("aluno@skillnapse.com")
+                .ativo(true)
+                .build();
+
+        TokenAtualizacao tokenSalvo = TokenAtualizacao.builder()
+                .token(hashRevogado)
+                .usuario(usuario)
+                .expiraEm(Instant.now().plusSeconds(3600))
+                .revogado(true)
+                .build();
+
+        when(jwtService.hashToken(tokenRevogado)).thenReturn(hashRevogado);
+        when(tokenAtualizacaoRepository.findByTokenForUpdate(hashRevogado)).thenReturn(Optional.of(tokenSalvo));
+
+        assertThatThrownBy(() -> authService.renovarToken(tokenRevogado))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("Tentativa de reutilização de token detectada. A sessão foi invalidada por segurança.");
+
+        verify(tokenAtualizacaoRepository).revogarTodosPorUsuario(usuarioId);
+    }
+
+    @Test
     @DisplayName("Deve lançar UnauthorizedException ao tentar renovar token expirado")
     void deveLancarUnauthorizedExceptionQuandoRefreshTokenExpirado() {
         String tokenExpirado = "refresh-token-expirado";
+        String hashExpirado = "hash-token-expirado";
         TokenAtualizacao tokenSalvo = TokenAtualizacao.builder()
-                .token(tokenExpirado)
+                .token(hashExpirado)
                 .expiraEm(Instant.now().minusSeconds(100))
                 .revogado(false)
                 .build();
 
-        when(tokenAtualizacaoRepository.findByTokenAndRevogadoFalse(tokenExpirado)).thenReturn(Optional.of(tokenSalvo));
+        when(jwtService.hashToken(tokenExpirado)).thenReturn(hashExpirado);
+        when(tokenAtualizacaoRepository.findByTokenForUpdate(hashExpirado)).thenReturn(Optional.of(tokenSalvo));
 
         assertThatThrownBy(() -> authService.renovarToken(tokenExpirado))
                 .isInstanceOf(UnauthorizedException.class)
@@ -206,12 +244,14 @@ class AuthServiceTest {
     @DisplayName("Deve revogar token com sucesso ao chamar revogarToken")
     void deveRevogarTokenComSucesso() {
         String token = "token-para-revogar";
+        String tokenHash = "hash-token-para-revogar";
         TokenAtualizacao tokenSalvo = TokenAtualizacao.builder()
-                .token(token)
+                .token(tokenHash)
                 .revogado(false)
                 .build();
 
-        when(tokenAtualizacaoRepository.findByToken(token)).thenReturn(Optional.of(tokenSalvo));
+        when(jwtService.hashToken(token)).thenReturn(tokenHash);
+        when(tokenAtualizacaoRepository.findByToken(tokenHash)).thenReturn(Optional.of(tokenSalvo));
 
         authService.revogarToken(token);
 

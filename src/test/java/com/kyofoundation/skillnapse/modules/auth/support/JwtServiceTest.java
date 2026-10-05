@@ -97,4 +97,17 @@ class JwtServiceTest {
         assertThat(expiracao).isAfter(Instant.now());
         assertThat(jwtService.getAccessTokenExpirationSeconds()).isEqualTo(3600L);
     }
+
+    @Test
+    @DisplayName("Deve gerar hash SHA-256 de 64 caracteres hexadecimais para refresh token")
+    void deveGerarHashSha256Corretamente() {
+        String token = "550e8400-e29b-41d4-a716-446655440000";
+        String hash1 = jwtService.hashToken(token);
+        String hash2 = jwtService.hashToken(token);
+
+        assertThat(hash1).isNotNull();
+        assertThat(hash1).hasSize(64);
+        assertThat(hash1).isEqualTo(hash2);
+        assertThat(jwtService.hashToken(null)).isNull();
+    }
 }

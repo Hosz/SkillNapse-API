@@ -53,9 +53,10 @@ public class AuthService {
 
         String accessToken = jwtService.gerarAccessToken(usuario);
         String refreshToken = jwtService.gerarRefreshToken();
+        String tokenHash = jwtService.hashToken(refreshToken);
         Instant expiraEm = jwtService.calcularExpiracaoRefreshToken();
 
-        TokenAtualizacao tokenAtualizacao = AuthMapper.toTokenAtualizacao(usuario, refreshToken, expiraEm);
+        TokenAtualizacao tokenAtualizacao = AuthMapper.toTokenAtualizacao(usuario, tokenHash, expiraEm);
         tokenAtualizacaoRepository.save(tokenAtualizacao);
 
         return AuthMapper.toLoginResponse(
@@ -75,8 +76,16 @@ public class AuthService {
             throw new BadRequestException("O token de atualização não pode ter mais de 255 caracteres.");
         }
 
-        TokenAtualizacao tokenSalvo = tokenAtualizacaoRepository.findByTokenAndRevogadoFalse(refreshToken)
+        String tokenHash = jwtService.hashToken(refreshToken);
+
+        TokenAtualizacao tokenSalvo = tokenAtualizacaoRepository.findByTokenForUpdate(tokenHash)
                 .orElseThrow(() -> new UnauthorizedException("Token de atualização inválido ou revogado."));
+
+        if (Boolean.TRUE.equals(tokenSalvo.getRevogado())) {
+            // Detecção de reutilização de refresh token (Token Reuse Detection - RFC 6819)
+            tokenAtualizacaoRepository.revogarTodosPorUsuario(tokenSalvo.getUsuario().getId());
+            throw new UnauthorizedException("Tentativa de reutilização de token detectada. A sessão foi invalidada por segurança.");
+        }
 
         if (tokenSalvo.getExpiraEm().isBefore(Instant.now())) {
             tokenSalvo.setRevogado(true);
@@ -93,9 +102,10 @@ public class AuthService {
 
         String novoAccessToken = jwtService.gerarAccessToken(usuario);
         String novoRefreshToken = jwtService.gerarRefreshToken();
+        String novoTokenHash = jwtService.hashToken(novoRefreshToken);
         Instant novaExpiracao = jwtService.calcularExpiracaoRefreshToken();
 
-        TokenAtualizacao novoTokenAtualizacao = AuthMapper.toTokenAtualizacao(usuario, novoRefreshToken, novaExpiracao);
+        TokenAtualizacao novoTokenAtualizacao = AuthMapper.toTokenAtualizacao(usuario, novoTokenHash, novaExpiracao);
         tokenAtualizacaoRepository.save(novoTokenAtualizacao);
 
         return AuthMapper.toLoginResponse(
@@ -109,7 +119,8 @@ public class AuthService {
     @Transactional
     public void revogarToken(String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
-            tokenAtualizacaoRepository.findByToken(refreshToken).ifPresent(token -> {
+            String tokenHash = jwtService.hashToken(refreshToken);
+            tokenAtualizacaoRepository.findByToken(tokenHash).ifPresent(token -> {
                 token.setRevogado(true);
                 tokenAtualizacaoRepository.save(token);
             });
