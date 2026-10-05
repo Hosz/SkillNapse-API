@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 @Component
@@ -22,7 +23,8 @@ public class UsuarioValidator {
     private static final int SENHA_MIN_LENGTH = 6;
     private static final int MAX_NOME_LENGTH = 150;
     private static final int MAX_EMAIL_LENGTH = 150;
-    private static final int MAX_SENHA_LENGTH = 100;
+    private static final int MAX_SENHA_LENGTH = 72;
+    private static final int MAX_SENHA_BYTES = 72;
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
@@ -53,7 +55,7 @@ public class UsuarioValidator {
         if (request.senha().trim().length() < SENHA_MIN_LENGTH) {
             throw new BadRequestException("A senha deve conter no mínimo " + SENHA_MIN_LENGTH + " caracteres.");
         }
-        if (request.senha().length() > MAX_SENHA_LENGTH) {
+        if (request.senha().length() > MAX_SENHA_LENGTH || request.senha().getBytes(StandardCharsets.UTF_8).length > MAX_SENHA_BYTES) {
             throw new BadRequestException("A senha não pode ter mais de " + MAX_SENHA_LENGTH + " caracteres.");
         }
     }
@@ -71,7 +73,7 @@ public class UsuarioValidator {
         if (request.senha() == null || request.senha().isBlank()) {
             throw new BadRequestException("A senha é obrigatória para realizar o login.");
         }
-        if (request.senha().length() > MAX_SENHA_LENGTH) {
+        if (request.senha().length() > MAX_SENHA_LENGTH || request.senha().getBytes(StandardCharsets.UTF_8).length > MAX_SENHA_BYTES) {
             throw new BadRequestException("A senha não pode ter mais de " + MAX_SENHA_LENGTH + " caracteres.");
         }
     }

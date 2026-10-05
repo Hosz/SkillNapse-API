@@ -8,6 +8,7 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -51,18 +52,24 @@ class SecurityConfigTest {
     @Test
     @DisplayName("Deve lançar IllegalStateException quando secret Base64 decodificada tiver menos de 32 bytes")
     void deveLancarExcecaoQuandoSecretBase64TiverMenosDe32BytesDecodificados() {
-        // 24 bytes em Base64 resultam exatamente em 32 caracteres ASCII, o que causava o bypass na validação UTF-8
-        String secretBase64De24Bytes = Base64.getEncoder().encodeToString(new byte[24]);
-        assertThat(secretBase64De24Bytes.length()).isEqualTo(32);
+        String secretBase64De24Bytes = "base64:" + Base64.getEncoder().encodeToString(new byte[24]);
 
         assertThatThrownBy(() -> securityConfig.secretKey(secretBase64De24Bytes))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("A chave secreta Base64 decodificada deve conter pelo menos 256 bits (32 bytes).");
 
-        String secretBase64De16Bytes = Base64.getEncoder().encodeToString(new byte[16]);
+        String secretBase64De16Bytes = "base64:" + Base64.getEncoder().encodeToString(new byte[16]);
         assertThatThrownBy(() -> securityConfig.secretKey(secretBase64De16Bytes))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("A chave secreta Base64 decodificada deve conter pelo menos 256 bits (32 bytes).");
+    }
+
+    @Test
+    @DisplayName("Deve lançar IllegalStateException quando payload do prefixo base64 for inválido")
+    void deveLancarExcecaoQuandoSecretBase64ForInvalido() {
+        assertThatThrownBy(() -> securityConfig.secretKey("base64:@@@invalido@@@"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("A chave secreta Base64 configurada é inválida.");
     }
 
     @Test
@@ -70,13 +77,29 @@ class SecurityConfigTest {
     void deveGerarSecretKeyQuandoSecretBase64Tiver32BytesOuMais() {
         byte[] rawBytes = new byte[32];
         Arrays.fill(rawBytes, (byte) 7);
-        String secretBase64 = Base64.getEncoder().encodeToString(rawBytes);
+        String secretBase64 = "base64:" + Base64.getEncoder().encodeToString(rawBytes);
 
         SecretKey secretKey = securityConfig.secretKey(secretBase64);
 
         assertThat(secretKey).isNotNull();
         assertThat(secretKey.getAlgorithm()).isEqualTo("HmacSHA256");
         assertThat(secretKey.getEncoded()).isEqualTo(rawBytes);
+    }
+
+    @Test
+    @DisplayName("Deve aceitar secret alfanumérica pura sem decodificar erroneamente como Base64")
+    void deveAceitarChaveAlfanumericaRawSemTratarComoBase64() {
+        // String alfanumérica pura de 32 caracteres (32 bytes UTF-8).
+        // Em Base64 ela seria sintaticamente válida e decodificaria para apenas 24 bytes.
+        // Com a desambiguação, ela deve ser tratada integralmente como raw UTF-8 de 32 bytes.
+        String rawAlfanumerica = "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6";
+        assertThat(rawAlfanumerica.length()).isEqualTo(32);
+
+        SecretKey secretKey = securityConfig.secretKey(rawAlfanumerica);
+
+        assertThat(secretKey).isNotNull();
+        assertThat(secretKey.getAlgorithm()).isEqualTo("HmacSHA256");
+        assertThat(secretKey.getEncoded()).isEqualTo(rawAlfanumerica.getBytes(StandardCharsets.UTF_8));
     }
 
     @Test

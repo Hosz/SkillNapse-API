@@ -246,15 +246,28 @@ class UsuarioValidatorTest {
     }
 
     @Test
-    @DisplayName("Deve lançar BadRequestException quando senha exceder 100 caracteres no cadastro")
-    void deveLancarExcecaoQuandoSenhaExceder100CaracteresNoCadastro() {
-        String senhaLonga = "s".repeat(101);
+    @DisplayName("Deve lançar BadRequestException quando senha exceder 72 caracteres no cadastro")
+    void deveLancarExcecaoQuandoSenhaExceder72CaracteresNoCadastro() {
+        String senhaLonga = "s".repeat(73);
         RegistroRequest request = new RegistroRequest("Aluno Kyo", "aluno@skillnapse.com", senhaLonga);
         when(usuarioRepository.existsByEmail("aluno@skillnapse.com")).thenReturn(false);
 
         assertThatThrownBy(() -> usuarioValidator.validarRegistro(request))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessage("A senha não pode ter mais de 100 caracteres.");
+                .hasMessage("A senha não pode ter mais de 72 caracteres.");
+    }
+
+    @Test
+    @DisplayName("Deve lançar BadRequestException quando senha exceder 72 bytes em UTF-8 no cadastro")
+    void deveLancarExcecaoQuandoSenhaExceder72BytesNoCadastro() {
+        // 25 emojis de 4 bytes = 100 bytes (> 72 bytes), apesar de ter apenas 25 caracteres visuais
+        String senhaMultiByte = "🔐".repeat(25);
+        RegistroRequest request = new RegistroRequest("Aluno Kyo", "aluno@skillnapse.com", senhaMultiByte);
+        when(usuarioRepository.existsByEmail("aluno@skillnapse.com")).thenReturn(false);
+
+        assertThatThrownBy(() -> usuarioValidator.validarRegistro(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("A senha não pode ter mais de 72 caracteres.");
     }
 
     @Test
@@ -269,13 +282,13 @@ class UsuarioValidatorTest {
     }
 
     @Test
-    @DisplayName("Deve lançar BadRequestException quando senha exceder 100 caracteres no login")
-    void deveLancarExcecaoQuandoSenhaExceder100CaracteresNoLogin() {
-        String senhaLonga = "s".repeat(101);
+    @DisplayName("Deve lançar BadRequestException quando senha exceder 72 caracteres no login")
+    void deveLancarExcecaoQuandoSenhaExceder72CaracteresNoLogin() {
+        String senhaLonga = "s".repeat(73);
         LoginRequest request = new LoginRequest("aluno@skillnapse.com", senhaLonga);
 
         assertThatThrownBy(() -> usuarioValidator.validarLogin(request))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessage("A senha não pode ter mais de 100 caracteres.");
+                .hasMessage("A senha não pode ter mais de 72 caracteres.");
     }
 }

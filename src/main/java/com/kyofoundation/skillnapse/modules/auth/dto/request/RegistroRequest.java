@@ -20,7 +20,7 @@ public record RegistroRequest(
 
         @NotBlank(message = "É necessário definir uma senha para se registrar.")
         @NotNull(message = "A senha é obrigatória.")
-        @Size(min = 6, max = 100, message = "A senha deve conter entre 6 e 100 caracteres.")
+        @Size(min = 6, max = 72, message = "A senha deve conter entre 6 e 72 caracteres.")
         String senha
 ) {
 }

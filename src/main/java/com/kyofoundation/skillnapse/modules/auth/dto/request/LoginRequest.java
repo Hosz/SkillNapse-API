@@ -14,7 +14,7 @@ public record LoginRequest(
 
         @NotBlank(message = "A senha é obrigatória para realizar o login.")
         @NotNull(message = "A senha é obrigatória.")
-        @Size(max = 100, message = "A senha não pode ter mais de 100 caracteres.")
+        @Size(max = 72, message = "A senha não pode ter mais de 72 caracteres.")
         String senha
 ) {
 }

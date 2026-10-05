@@ -59,13 +59,18 @@ public class SecurityConfig {
         }
         String trimmedSecret = secret.trim();
         byte[] keyBytes;
-        try {
-            byte[] decoded = Base64.getDecoder().decode(trimmedSecret);
-            if (decoded.length < 32) {
+        if (trimmedSecret.regionMatches(true, 0, "base64:", 0, 7) || trimmedSecret.regionMatches(true, 0, "{base64}", 0, 8)) {
+            int prefixLength = trimmedSecret.regionMatches(true, 0, "base64:", 0, 7) ? 7 : 8;
+            String payload = trimmedSecret.substring(prefixLength).trim();
+            try {
+                keyBytes = Base64.getDecoder().decode(payload);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalStateException("A chave secreta Base64 configurada é inválida.", e);
+            }
+            if (keyBytes.length < 32) {
                 throw new IllegalStateException("A chave secreta Base64 decodificada deve conter pelo menos 256 bits (32 bytes).");
             }
-            keyBytes = decoded;
-        } catch (IllegalArgumentException e) {
+        } else {
             keyBytes = trimmedSecret.getBytes(StandardCharsets.UTF_8);
             if (keyBytes.length < 32) {
                 throw new IllegalStateException("A chave secreta JWT deve conter pelo menos 256 bits (32 bytes).");
