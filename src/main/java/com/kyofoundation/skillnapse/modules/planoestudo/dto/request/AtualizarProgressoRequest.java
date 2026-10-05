@@ -1,4 +1,9 @@
 package com.kyofoundation.skillnapse.modules.planoestudo.dto.request;
 
-public record AtualizarProgressoRequest() {
+import com.kyofoundation.skillnapse.modules.planoestudo.enums.NivelProficiencia;
+
+public record AtualizarProgressoRequest(
+        Boolean concluido,
+        NivelProficiencia nivelProficiencia
+) {
 }
