@@ -57,17 +57,19 @@ public class SecurityConfig {
         if (secret == null || secret.isBlank()) {
             throw new IllegalStateException("A chave secreta JWT (skillnapse.jwt.secret / JWT_SECRET) deve ser configurada.");
         }
+        String trimmedSecret = secret.trim();
         byte[] keyBytes;
         try {
-            keyBytes = Base64.getDecoder().decode(secret);
-            if (keyBytes.length < 32) {
-                keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+            byte[] decoded = Base64.getDecoder().decode(trimmedSecret);
+            if (decoded.length < 32) {
+                throw new IllegalStateException("A chave secreta Base64 decodificada deve conter pelo menos 256 bits (32 bytes).");
             }
-        } catch (Exception e) {
-            keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        }
-        if (keyBytes.length < 32) {
-            throw new IllegalStateException("A chave secreta JWT deve conter pelo menos 256 bits (32 bytes).");
+            keyBytes = decoded;
+        } catch (IllegalArgumentException e) {
+            keyBytes = trimmedSecret.getBytes(StandardCharsets.UTF_8);
+            if (keyBytes.length < 32) {
+                throw new IllegalStateException("A chave secreta JWT deve conter pelo menos 256 bits (32 bytes).");
+            }
         }
         return new SecretKeySpec(keyBytes, "HmacSHA256");
     }
