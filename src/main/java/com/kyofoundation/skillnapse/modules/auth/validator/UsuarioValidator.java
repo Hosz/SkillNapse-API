@@ -20,6 +20,9 @@ public class UsuarioValidator {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     private static final int SENHA_MIN_LENGTH = 6;
+    private static final int MAX_NOME_LENGTH = 150;
+    private static final int MAX_EMAIL_LENGTH = 150;
+    private static final int MAX_SENHA_LENGTH = 100;
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
@@ -31,8 +34,14 @@ public class UsuarioValidator {
         if (request.nome() == null || request.nome().isBlank()) {
             throw new BadRequestException("É necessário um nome para se registrar.");
         }
+        if (request.nome().trim().length() > MAX_NOME_LENGTH) {
+            throw new BadRequestException("O nome não pode ter mais de " + MAX_NOME_LENGTH + " caracteres.");
+        }
         if (request.email() == null || request.email().isBlank()) {
             throw new BadRequestException("É necessário um email para se registrar.");
+        }
+        if (request.email().trim().length() > MAX_EMAIL_LENGTH) {
+            throw new BadRequestException("O e-mail não pode ter mais de " + MAX_EMAIL_LENGTH + " caracteres.");
         }
         if (!EMAIL_PATTERN.matcher(request.email().trim()).matches()) {
             throw new BadRequestException("O e-mail informado possui um formato inválido.");
@@ -44,6 +53,9 @@ public class UsuarioValidator {
         if (request.senha().trim().length() < SENHA_MIN_LENGTH) {
             throw new BadRequestException("A senha deve conter no mínimo " + SENHA_MIN_LENGTH + " caracteres.");
         }
+        if (request.senha().length() > MAX_SENHA_LENGTH) {
+            throw new BadRequestException("A senha não pode ter mais de " + MAX_SENHA_LENGTH + " caracteres.");
+        }
     }
 
     public void validarLogin(LoginRequest request) {
@@ -53,8 +65,14 @@ public class UsuarioValidator {
         if (request.email() == null || request.email().isBlank()) {
             throw new BadRequestException("O e-mail é obrigatório para realizar o login.");
         }
+        if (request.email().trim().length() > MAX_EMAIL_LENGTH) {
+            throw new BadRequestException("O e-mail não pode ter mais de " + MAX_EMAIL_LENGTH + " caracteres.");
+        }
         if (request.senha() == null || request.senha().isBlank()) {
             throw new BadRequestException("A senha é obrigatória para realizar o login.");
+        }
+        if (request.senha().length() > MAX_SENHA_LENGTH) {
+            throw new BadRequestException("A senha não pode ter mais de " + MAX_SENHA_LENGTH + " caracteres.");
         }
     }
 

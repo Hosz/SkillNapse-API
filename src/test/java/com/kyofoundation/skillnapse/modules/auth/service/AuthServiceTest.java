@@ -1,5 +1,6 @@
 package com.kyofoundation.skillnapse.modules.auth.service;
 
+import com.kyofoundation.skillnapse.common.exception.BadRequestException;
 import com.kyofoundation.skillnapse.common.exception.UnauthorizedException;
 import com.kyofoundation.skillnapse.modules.auth.dto.request.LoginRequest;
 import com.kyofoundation.skillnapse.modules.auth.dto.request.RegistroRequest;
@@ -179,6 +180,40 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.renovarToken(tokenExpirado))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessage("Token de atualização expirado.");
+
+        assertThat(tokenSalvo.getRevogado()).isTrue();
+        verify(tokenAtualizacaoRepository).save(tokenSalvo);
+    }
+
+    @Test
+    @DisplayName("Deve lançar BadRequestException quando refresh token for nulo ou vazio")
+    void deveLancarBadRequestExceptionQuandoRefreshTokenVazio() {
+        assertThatThrownBy(() -> authService.renovarToken(""))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("O token de atualização não pode ser nulo ou vazio.");
+    }
+
+    @Test
+    @DisplayName("Deve lançar BadRequestException quando refresh token exceder 255 caracteres")
+    void deveLancarBadRequestExceptionQuandoRefreshTokenExceder255Caracteres() {
+        String tokenLongo = "T".repeat(256);
+        assertThatThrownBy(() -> authService.renovarToken(tokenLongo))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("O token de atualização não pode ter mais de 255 caracteres.");
+    }
+
+    @Test
+    @DisplayName("Deve revogar token com sucesso ao chamar revogarToken")
+    void deveRevogarTokenComSucesso() {
+        String token = "token-para-revogar";
+        TokenAtualizacao tokenSalvo = TokenAtualizacao.builder()
+                .token(token)
+                .revogado(false)
+                .build();
+
+        when(tokenAtualizacaoRepository.findByToken(token)).thenReturn(Optional.of(tokenSalvo));
+
+        authService.revogarToken(token);
 
         assertThat(tokenSalvo.getRevogado()).isTrue();
         verify(tokenAtualizacaoRepository).save(tokenSalvo);

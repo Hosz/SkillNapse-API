@@ -54,7 +54,10 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecretKey secretKey(@Value("${skillnapse.jwt.secret:default-secret-key-at-least-256-bits-long-skillnapse}") String secret) {
+    public SecretKey secretKey(@Value("${skillnapse.jwt.secret}") String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("A chave secreta JWT (skillnapse.jwt.secret / JWT_SECRET) deve ser configurada.");
+        }
         byte[] keyBytes;
         try {
             keyBytes = Base64.getDecoder().decode(secret);
@@ -63,6 +66,9 @@ public class SecurityConfig {
             }
         } catch (Exception e) {
             keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        }
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException("A chave secreta JWT deve conter pelo menos 256 bits (32 bytes).");
         }
         return new SecretKeySpec(keyBytes, "HmacSHA256");
     }

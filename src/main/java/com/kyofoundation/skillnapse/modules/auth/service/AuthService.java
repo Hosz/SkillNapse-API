@@ -66,10 +66,13 @@ public class AuthService {
         );
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = UnauthorizedException.class)
     public LoginResponse renovarToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new BadRequestException("O token de atualização não pode ser nulo ou vazio.");
+        }
+        if (refreshToken.length() > 255) {
+            throw new BadRequestException("O token de atualização não pode ter mais de 255 caracteres.");
         }
 
         TokenAtualizacao tokenSalvo = tokenAtualizacaoRepository.findByTokenAndRevogadoFalse(refreshToken)

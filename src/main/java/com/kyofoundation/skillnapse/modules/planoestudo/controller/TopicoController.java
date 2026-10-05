@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/topicos")
 @RequiredArgsConstructor
 @Tag(name = "Tópicos e Árvore de Conhecimento", description = "Endpoints para gerenciamento hierárquico de tópicos, subtópicos e proficiência")
+@SecurityRequirement(name = "bearerAuth")
 public class TopicoController {
 
     private final TopicoService topicoService;

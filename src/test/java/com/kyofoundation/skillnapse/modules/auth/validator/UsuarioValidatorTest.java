@@ -222,4 +222,60 @@ class UsuarioValidatorTest {
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessage("Usuário inativo ou bloqueado no sistema.");
     }
+
+    @Test
+    @DisplayName("Deve lançar BadRequestException quando nome exceder 150 caracteres no cadastro")
+    void deveLancarExcecaoQuandoNomeExceder150Caracteres() {
+        String nomeLongo = "A".repeat(151);
+        RegistroRequest request = new RegistroRequest(nomeLongo, "aluno@skillnapse.com", "senha123");
+
+        assertThatThrownBy(() -> usuarioValidator.validarRegistro(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("O nome não pode ter mais de 150 caracteres.");
+    }
+
+    @Test
+    @DisplayName("Deve lançar BadRequestException quando email exceder 150 caracteres no cadastro")
+    void deveLancarExcecaoQuandoEmailExceder150CaracteresNoCadastro() {
+        String emailLongo = "a".repeat(140) + "@skillnapse.com";
+        RegistroRequest request = new RegistroRequest("Aluno Kyo", emailLongo, "senha123");
+
+        assertThatThrownBy(() -> usuarioValidator.validarRegistro(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("O e-mail não pode ter mais de 150 caracteres.");
+    }
+
+    @Test
+    @DisplayName("Deve lançar BadRequestException quando senha exceder 100 caracteres no cadastro")
+    void deveLancarExcecaoQuandoSenhaExceder100CaracteresNoCadastro() {
+        String senhaLonga = "s".repeat(101);
+        RegistroRequest request = new RegistroRequest("Aluno Kyo", "aluno@skillnapse.com", senhaLonga);
+        when(usuarioRepository.existsByEmail("aluno@skillnapse.com")).thenReturn(false);
+
+        assertThatThrownBy(() -> usuarioValidator.validarRegistro(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("A senha não pode ter mais de 100 caracteres.");
+    }
+
+    @Test
+    @DisplayName("Deve lançar BadRequestException quando email exceder 150 caracteres no login")
+    void deveLancarExcecaoQuandoEmailExceder150CaracteresNoLogin() {
+        String emailLongo = "a".repeat(140) + "@skillnapse.com";
+        LoginRequest request = new LoginRequest(emailLongo, "senha123");
+
+        assertThatThrownBy(() -> usuarioValidator.validarLogin(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("O e-mail não pode ter mais de 150 caracteres.");
+    }
+
+    @Test
+    @DisplayName("Deve lançar BadRequestException quando senha exceder 100 caracteres no login")
+    void deveLancarExcecaoQuandoSenhaExceder100CaracteresNoLogin() {
+        String senhaLonga = "s".repeat(101);
+        LoginRequest request = new LoginRequest("aluno@skillnapse.com", senhaLonga);
+
+        assertThatThrownBy(() -> usuarioValidator.validarLogin(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("A senha não pode ter mais de 100 caracteres.");
+    }
 }

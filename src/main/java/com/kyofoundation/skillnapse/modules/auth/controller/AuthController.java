@@ -2,6 +2,7 @@ package com.kyofoundation.skillnapse.modules.auth.controller;
 
 import com.kyofoundation.skillnapse.common.exception.ErrorResponse;
 import com.kyofoundation.skillnapse.modules.auth.dto.request.LoginRequest;
+import com.kyofoundation.skillnapse.modules.auth.dto.request.RefreshTokenRequest;
 import com.kyofoundation.skillnapse.modules.auth.dto.request.RegistroRequest;
 import com.kyofoundation.skillnapse.modules.auth.dto.response.LoginResponse;
 import com.kyofoundation.skillnapse.modules.auth.dto.response.RegistroResponse;
@@ -54,5 +55,19 @@ public class AuthController {
     })
     public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "Renovar token de acesso", description = "Valida o refresh token ativo e emite novo par de Access Token e Refresh Token através de rotação.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Token renovado com sucesso",
+                    content = @Content(schema = @Schema(implementation = LoginResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Token de atualização inválido ou não informado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token de atualização expirado ou revogado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<LoginResponse> renovarToken(@RequestBody @Valid RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.renovarToken(request.refreshToken()));
     }
 }
