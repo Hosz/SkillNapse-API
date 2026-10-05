@@ -8,6 +8,7 @@ import com.kyofoundation.skillnapse.modules.auth.dto.response.LoginResponse;
 import com.kyofoundation.skillnapse.modules.auth.dto.response.RegistroResponse;
 import com.kyofoundation.skillnapse.modules.auth.entity.TokenAtualizacao;
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
+import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
 import com.kyofoundation.skillnapse.modules.auth.mapper.AuthMapper;
 import com.kyofoundation.skillnapse.modules.auth.repository.TokenAtualizacaoRepository;
 import com.kyofoundation.skillnapse.modules.auth.repository.UsuarioRepository;
@@ -29,6 +30,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final UsuarioValidator usuarioValidator;
     private final JwtService jwtService;
+    private final UserFinder userFinder;
 
     @Transactional
     public RegistroResponse register(RegistroRequest request) {
@@ -45,8 +47,7 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         usuarioValidator.validarLogin(request);
 
-        Usuario usuario = usuarioRepository.findByEmail(request.email().trim().toLowerCase())
-                .orElseThrow(() -> new UnauthorizedException("Credenciais inválidas: e-mail ou senha incorretos."));
+        Usuario usuario = userFinder.findByEmail(request.email());
 
         usuarioValidator.validarCredenciais(usuario, request.senha());
 

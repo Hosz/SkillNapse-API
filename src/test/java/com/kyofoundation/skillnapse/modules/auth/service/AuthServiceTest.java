@@ -7,6 +7,7 @@ import com.kyofoundation.skillnapse.modules.auth.dto.response.LoginResponse;
 import com.kyofoundation.skillnapse.modules.auth.dto.response.RegistroResponse;
 import com.kyofoundation.skillnapse.modules.auth.entity.TokenAtualizacao;
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
+import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
 import com.kyofoundation.skillnapse.modules.auth.repository.TokenAtualizacaoRepository;
 import com.kyofoundation.skillnapse.modules.auth.repository.UsuarioRepository;
 import com.kyofoundation.skillnapse.modules.auth.support.JwtService;
@@ -49,6 +50,9 @@ class AuthServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private UserFinder userFinder;
+
     @InjectMocks
     private AuthService authService;
 
@@ -89,7 +93,7 @@ class AuthServiceTest {
                 .build();
 
         doNothing().when(usuarioValidator).validarLogin(request);
-        when(usuarioRepository.findByEmail("aluno@skillnapse.com")).thenReturn(Optional.of(usuario));
+        when(userFinder.findByEmail("aluno@skillnapse.com")).thenReturn(usuario);
         doNothing().when(usuarioValidator).validarCredenciais(usuario, "senha123");
 
         when(jwtService.gerarAccessToken(usuario)).thenReturn("mock.access.jwt");
@@ -117,7 +121,8 @@ class AuthServiceTest {
         LoginRequest request = new LoginRequest("inexistente@skillnapse.com", "senha123");
 
         doNothing().when(usuarioValidator).validarLogin(request);
-        when(usuarioRepository.findByEmail("inexistente@skillnapse.com")).thenReturn(Optional.empty());
+        when(userFinder.findByEmail("inexistente@skillnapse.com"))
+                .thenThrow(new UnauthorizedException("Credenciais inválidas: e-mail ou senha incorretos."));
 
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(UnauthorizedException.class)
