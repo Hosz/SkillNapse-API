@@ -3,6 +3,7 @@ package com.kyofoundation.skillnapse.modules.sessao.service;
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
 import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
 import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
+import com.kyofoundation.skillnapse.modules.gamificacao.service.OfensivaService;
 import com.kyofoundation.skillnapse.modules.planoestudo.entity.Materia;
 import com.kyofoundation.skillnapse.modules.planoestudo.entity.Topico;
 import com.kyofoundation.skillnapse.modules.planoestudo.finder.TopicoFinder;
@@ -60,6 +61,9 @@ class SessaoEstudoServiceTest {
 
     @Mock
     private ResumoHorasLiquidasSupport resumoHorasLiquidasSupport;
+
+    @Mock
+    private OfensivaService ofensivaService;
 
     @InjectMocks
     private SessaoEstudoService service;

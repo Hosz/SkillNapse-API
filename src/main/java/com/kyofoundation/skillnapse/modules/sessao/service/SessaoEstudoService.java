@@ -3,12 +3,14 @@ package com.kyofoundation.skillnapse.modules.sessao.service;
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
 import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
 import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
+import com.kyofoundation.skillnapse.modules.gamificacao.service.OfensivaService;
 import com.kyofoundation.skillnapse.modules.planoestudo.entity.Topico;
 import com.kyofoundation.skillnapse.modules.planoestudo.finder.TopicoFinder;
 import com.kyofoundation.skillnapse.modules.sessao.dto.request.RegistrarSessaoEstudoRequest;
 import com.kyofoundation.skillnapse.modules.sessao.dto.response.ResumoHorasLiquidasResponse;
 import com.kyofoundation.skillnapse.modules.sessao.dto.response.SessaoEstudoResponse;
 import com.kyofoundation.skillnapse.modules.sessao.entity.SessaoEstudo;
+import com.kyofoundation.skillnapse.modules.sessao.enums.StatusSessaoEstudo;
 import com.kyofoundation.skillnapse.modules.sessao.finder.SessaoEstudoFinder;
 import com.kyofoundation.skillnapse.modules.sessao.mapper.SessaoEstudoMapper;
 import com.kyofoundation.skillnapse.modules.sessao.repository.SessaoEstudoRepository;
@@ -22,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Service
@@ -37,6 +41,7 @@ public class SessaoEstudoService {
 
     private final SessaoEstudoRepository sessaoEstudoRepository;
     private final ResumoHorasLiquidasSupport resumoHorasLiquidasSupport;
+    private final OfensivaService ofensivaService;
 
     @Transactional
     public SessaoEstudoResponse registrarSessaoEstudo(UUID userId, RegistrarSessaoEstudoRequest request) {
@@ -48,6 +53,11 @@ public class SessaoEstudoService {
 
         SessaoEstudo sessaoEstudo = SessaoEstudoMapper.toEntity(request, usuario, topico);
         SessaoEstudo salva = sessaoEstudoRepository.save(sessaoEstudo);
+
+        if (salva.getStatus() == StatusSessaoEstudo.CONCLUIDA && salva.getIniciadoEm() != null) {
+            LocalDate dataEstudo = salva.getIniciadoEm().atZone(ZoneOffset.UTC).toLocalDate();
+            ofensivaService.registrarEstudoSilencioso(usuario, dataEstudo);
+        }
 
         return SessaoEstudoMapper.toResponse(salva);
     }
