@@ -103,7 +103,7 @@ public class BaralhoService {
         List<BaralhoMetricasProjection> metricas = baralhoFinder.obterMetricasPorUsuario(userId, LocalDate.now());
 
         Map<UUID, BaralhoMetricasProjection> metricasMap = metricas.stream()
-                .collect(Collectors.toMap(BaralhoMetricasProjection::getBaralhoId, m -> m));
+                .collect(Collectors.toMap(BaralhoMetricasProjection::getBaralhoId, m -> m, (m1, m2) -> m1));
 
         return baralhos.map(b -> {
             BaralhoMetricasProjection metrica = metricasMap.get(b.getId());
