@@ -5,11 +5,13 @@ import com.kyofoundation.skillnapse.modules.cronograma.dto.request.EditarBlocoHo
 import com.kyofoundation.skillnapse.modules.cronograma.dto.response.BlocoHorarioResponse;
 import com.kyofoundation.skillnapse.modules.cronograma.entity.BlocoHorarioTemplate;
 import com.kyofoundation.skillnapse.modules.cronograma.entity.TemplateSemanal;
+import com.kyofoundation.skillnapse.modules.cronograma.dto.response.TopicoRevisaoItemResponse;
 import com.kyofoundation.skillnapse.modules.cronograma.enums.TipoBloco;
 import com.kyofoundation.skillnapse.modules.planoestudo.entity.Materia;
 import com.kyofoundation.skillnapse.modules.planoestudo.entity.Topico;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -37,6 +39,16 @@ public class BlocoHorarioTemplateMapper {
         String materiaNome = blocoHorarioTemplate.getMateria() != null ? blocoHorarioTemplate.getMateria().getNome() : null;
         UUID topicoId = blocoHorarioTemplate.getTopico() != null ? blocoHorarioTemplate.getTopico().getId() : null;
         String topicoTitulo = blocoHorarioTemplate.getTopico() != null ? blocoHorarioTemplate.getTopico().getTitulo() : null;
+        List<TopicoRevisaoItemResponse> topicosRevisao = blocoHorarioTemplate.getTopicosRevisao() != null
+                ? blocoHorarioTemplate.getTopicosRevisao().stream()
+                        .map(t -> new TopicoRevisaoItemResponse(
+                                t.getId(),
+                                t.getTitulo(),
+                                t.getMateria() != null ? t.getMateria().getId() : null,
+                                t.getMateria() != null ? t.getMateria().getNome() : null
+                        ))
+                        .toList()
+                : List.of();
 
         return new BlocoHorarioResponse(
                 blocoHorarioTemplate.getId(),
@@ -48,7 +60,8 @@ public class BlocoHorarioTemplateMapper {
                 materiaId,
                 materiaNome,
                 topicoId,
-                topicoTitulo
+                topicoTitulo,
+                topicosRevisao
         );
     }
 

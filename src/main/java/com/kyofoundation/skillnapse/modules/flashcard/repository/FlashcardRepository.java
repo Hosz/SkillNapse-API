@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,5 +48,42 @@ public interface FlashcardRepository extends JpaRepository<Flashcard, UUID> {
     long contarCardsVencidos(
             @Param("usuarioId") UUID usuarioId,
             @Param("dataReferencia") LocalDate dataReferencia
+    );
+
+    @Query("""
+        SELECT f FROM Flashcard f
+        JOIN f.baralho b
+        WHERE b.usuario.id = :usuarioId
+          AND f.topico.id IN :topicoIds
+          AND f.proximaRevisao <= :dataReferencia
+        ORDER BY f.proximaRevisao ASC, f.id ASC
+    """)
+    List<Flashcard> buscarCardsVencidosPorTopicos(
+            @Param("usuarioId") UUID usuarioId,
+            @Param("topicoIds") Collection<UUID> topicoIds,
+            @Param("dataReferencia") LocalDate dataReferencia
+    );
+
+    @Query("""
+        SELECT f FROM Flashcard f
+        JOIN f.baralho b
+        WHERE b.usuario.id = :usuarioId
+          AND f.topico.id IN :topicoIds
+        ORDER BY f.proximaRevisao ASC, f.id ASC
+    """)
+    List<Flashcard> buscarCardsPorTopicos(
+            @Param("usuarioId") UUID usuarioId,
+            @Param("topicoIds") Collection<UUID> topicoIds
+    );
+
+    @Query("""
+        SELECT COUNT(f) FROM Flashcard f
+        JOIN f.baralho b
+        WHERE b.usuario.id = :usuarioId
+          AND f.topico.id IN :topicoIds
+    """)
+    long contarCardsPorTopicos(
+            @Param("usuarioId") UUID usuarioId,
+            @Param("topicoIds") Collection<UUID> topicoIds
     );
 }

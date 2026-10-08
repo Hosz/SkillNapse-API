@@ -6,6 +6,8 @@ import com.kyofoundation.skillnapse.modules.planoestudo.repository.TopicoReposit
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -17,5 +19,12 @@ public class TopicoFinder {
     public Topico findById(UUID topicoId) {
         return topicoRepository.findById(topicoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tópico não encontrado ou não existente."));
+    }
+
+    public List<Topico> findAllByIds(Collection<UUID> topicoIds) {
+        if (topicoIds == null || topicoIds.isEmpty()) {
+            return List.of();
+        }
+        return topicoRepository.findAllById(topicoIds);
     }
 }

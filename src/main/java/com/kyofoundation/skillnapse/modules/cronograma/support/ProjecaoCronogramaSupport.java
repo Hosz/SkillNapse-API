@@ -2,6 +2,7 @@ package com.kyofoundation.skillnapse.modules.cronograma.support;
 
 import com.kyofoundation.skillnapse.modules.cronograma.dto.response.AgendaDiariaResponse;
 import com.kyofoundation.skillnapse.modules.cronograma.dto.response.BlocoAgendaDiariaResponse;
+import com.kyofoundation.skillnapse.modules.cronograma.dto.response.TopicoRevisaoItemResponse;
 import com.kyofoundation.skillnapse.modules.cronograma.entity.BlocoHorarioTemplate;
 import com.kyofoundation.skillnapse.modules.cronograma.entity.ExcecaoDiaria;
 import com.kyofoundation.skillnapse.modules.cronograma.entity.TemplateSemanal;
@@ -69,6 +70,16 @@ public class ProjecaoCronogramaSupport {
         String materiaNome = bloco.getMateria() != null ? bloco.getMateria().getNome() : null;
         UUID topicoId = bloco.getTopico() != null ? bloco.getTopico().getId() : null;
         String topicoTitulo = bloco.getTopico() != null ? bloco.getTopico().getTitulo() : null;
+        List<TopicoRevisaoItemResponse> topicosRevisao = bloco.getTopicosRevisao() != null
+                ? bloco.getTopicosRevisao().stream()
+                        .map(t -> new TopicoRevisaoItemResponse(
+                                t.getId(),
+                                t.getTitulo(),
+                                t.getMateria() != null ? t.getMateria().getId() : null,
+                                t.getMateria() != null ? t.getMateria().getNome() : null
+                        ))
+                        .toList()
+                : List.of();
 
         return new BlocoAgendaDiariaResponse(
                 bloco.getId(),
@@ -82,7 +93,8 @@ public class ProjecaoCronogramaSupport {
                 materiaId,
                 materiaNome,
                 topicoId,
-                topicoTitulo
+                topicoTitulo,
+                topicosRevisao
         );
     }
 
@@ -101,6 +113,26 @@ public class ProjecaoCronogramaSupport {
         String topicoTitulo = excecao.getTopico() != null ? excecao.getTopico().getTitulo()
                 : (blocoOriginal.getTopico() != null ? blocoOriginal.getTopico().getTitulo() : null);
 
+        List<TopicoRevisaoItemResponse> topicosRevisao = (excecao.getTopicosRevisao() != null && !excecao.getTopicosRevisao().isEmpty())
+                ? excecao.getTopicosRevisao().stream()
+                        .map(t -> new TopicoRevisaoItemResponse(
+                                t.getId(),
+                                t.getTitulo(),
+                                t.getMateria() != null ? t.getMateria().getId() : null,
+                                t.getMateria() != null ? t.getMateria().getNome() : null
+                        ))
+                        .toList()
+                : (blocoOriginal.getTopicosRevisao() != null
+                        ? blocoOriginal.getTopicosRevisao().stream()
+                                .map(t -> new TopicoRevisaoItemResponse(
+                                        t.getId(),
+                                        t.getTitulo(),
+                                        t.getMateria() != null ? t.getMateria().getId() : null,
+                                        t.getMateria() != null ? t.getMateria().getNome() : null
+                                ))
+                                .toList()
+                        : List.of());
+
         return new BlocoAgendaDiariaResponse(
                 excecao.getId(),
                 TipoOrigemBloco.EXCECAO,
@@ -113,7 +145,8 @@ public class ProjecaoCronogramaSupport {
                 materiaId,
                 materiaNome,
                 topicoId,
-                topicoTitulo
+                topicoTitulo,
+                topicosRevisao
         );
     }
 
@@ -122,6 +155,16 @@ public class ProjecaoCronogramaSupport {
         String materiaNome = excecao.getMateria() != null ? excecao.getMateria().getNome() : null;
         UUID topicoId = excecao.getTopico() != null ? excecao.getTopico().getId() : null;
         String topicoTitulo = excecao.getTopico() != null ? excecao.getTopico().getTitulo() : null;
+        List<TopicoRevisaoItemResponse> topicosRevisao = excecao.getTopicosRevisao() != null
+                ? excecao.getTopicosRevisao().stream()
+                        .map(t -> new TopicoRevisaoItemResponse(
+                                t.getId(),
+                                t.getTitulo(),
+                                t.getMateria() != null ? t.getMateria().getId() : null,
+                                t.getMateria() != null ? t.getMateria().getNome() : null
+                        ))
+                        .toList()
+                : List.of();
 
         return new BlocoAgendaDiariaResponse(
                 excecao.getId(),
@@ -135,7 +178,8 @@ public class ProjecaoCronogramaSupport {
                 materiaId,
                 materiaNome,
                 topicoId,
-                topicoTitulo
+                topicoTitulo,
+                topicosRevisao
         );
     }
 }

@@ -5,6 +5,7 @@ import com.kyofoundation.skillnapse.modules.cronograma.enums.TipoBloco;
 import com.kyofoundation.skillnapse.modules.cronograma.enums.TipoOrigemBloco;
 
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 public record BlocoAgendaDiariaResponse(
@@ -19,6 +20,23 @@ public record BlocoAgendaDiariaResponse(
         UUID materiaId,
         String materiaNome,
         UUID topicoId,
-        String topicoTitulo
+        String topicoTitulo,
+        List<TopicoRevisaoItemResponse> topicosRevisao
 ) {
+    public BlocoAgendaDiariaResponse(
+            UUID id,
+            TipoOrigemBloco origem,
+            TipoAcaoExcecao tipoAcaoExcecao,
+            UUID blocoTemplateOrigemId,
+            UUID excecaoId,
+            LocalTime horaInicio,
+            LocalTime horaFim,
+            TipoBloco tipoBloco,
+            UUID materiaId,
+            String materiaNome,
+            UUID topicoId,
+            String topicoTitulo
+    ) {
+        this(id, origem, tipoAcaoExcecao, blocoTemplateOrigemId, excecaoId, horaInicio, horaFim, tipoBloco, materiaId, materiaNome, topicoId, topicoTitulo, List.of());
+    }
 }
