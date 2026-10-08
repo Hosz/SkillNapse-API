@@ -54,21 +54,28 @@ public class QuestaoController {
                     content = @Content(schema = @Schema(implementation = QuestaoDetalheResponse.class))),
             @ApiResponse(responseCode = "400", description = "Dados da questão inválidos",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Usuário inativo ou não autorizado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "409", description = "Enunciado duplicado no acervo",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<QuestaoDetalheResponse> criar(
+            @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CriarQuestaoRequest request
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(questaoService.criar(request));
+        UUID userId = UUID.fromString(jwt.getSubject());
+        return ResponseEntity.status(HttpStatus.CREATED).body(questaoService.criar(userId, request));
     }
 
     @GetMapping
     @Operation(summary = "Buscar questões com filtros", description = "Consulta paginada de questões por filtros dinâmicos de assunto, tópico, banca, ano, dificuldade e termo no enunciado.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Página de questões retornada com sucesso")
+            @ApiResponse(responseCode = "200", description = "Página de questões retornada com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Usuário inativo ou não autorizado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<Page<QuestaoResumoResponse>> buscarComFiltros(
+            @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String assuntoGeral,
             @RequestParam(required = false) String topicoReferencia,
             @RequestParam(required = false) String banca,
@@ -77,7 +84,9 @@ public class QuestaoController {
             @RequestParam(required = false) String termoBusca,
             @ParameterObject Pageable pageable
     ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
         return ResponseEntity.ok(questaoService.buscarComFiltros(
+                userId,
                 assuntoGeral,
                 topicoReferencia,
                 banca,
@@ -93,13 +102,17 @@ public class QuestaoController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Questão encontrada com sucesso",
                     content = @Content(schema = @Schema(implementation = QuestaoDetalheResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Usuário inativo ou não autorizado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Questão não encontrada",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<QuestaoDetalheResponse> buscarPorId(
+            @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id
     ) {
-        return ResponseEntity.ok(questaoService.buscarPorId(id));
+        UUID userId = UUID.fromString(jwt.getSubject());
+        return ResponseEntity.ok(questaoService.buscarPorId(userId, id));
     }
 
     @PostMapping("/{id}/responder")
@@ -109,7 +122,7 @@ public class QuestaoController {
                     content = @Content(schema = @Schema(implementation = ResultadoResolucaoResponse.class))),
             @ApiResponse(responseCode = "400", description = "Dados da resposta inválidos ou alternativa não pertencente à questão",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "403", description = "Simulado ou tópico pertencente a outro usuário",
+            @ApiResponse(responseCode = "403", description = "Simulado ou tópico pertencente a outro usuário ou usuário inativo",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Questão ou alternativa não encontrada",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -126,7 +139,9 @@ public class QuestaoController {
     @GetMapping("/historico")
     @Operation(summary = "Histórico de resoluções", description = "Lista as tentativas de resolução de questões do usuário autenticado de forma paginada.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso")
+            @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Usuário inativo ou não autorizado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<Page<HistoricoTentativaResponse>> buscarHistorico(
             @RequestParam(required = false) Boolean acertou,

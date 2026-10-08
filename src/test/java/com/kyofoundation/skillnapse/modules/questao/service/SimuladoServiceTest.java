@@ -1,7 +1,9 @@
 package com.kyofoundation.skillnapse.modules.questao.service;
 
+import com.kyofoundation.skillnapse.common.exception.ForbiddenException;
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
 import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
+import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
 import com.kyofoundation.skillnapse.modules.questao.dto.request.CriarSimuladoRequest;
 import com.kyofoundation.skillnapse.modules.questao.dto.response.SimuladoResponse;
 import com.kyofoundation.skillnapse.modules.questao.entity.Simulado;
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -48,17 +51,21 @@ class SimuladoServiceTest {
     @Mock
     private UserFinder userFinder;
 
+    @Mock
+    private UsuarioValidator usuarioValidator;
+
     @InjectMocks
     private SimuladoService simuladoService;
 
     @Test
-    @DisplayName("Deve criar simulado com sucesso")
+    @DisplayName("Deve criar simulado com sucesso validando usuário ativo")
     void deveCriarSimuladoComSucesso() {
         UUID userId = UUID.randomUUID();
-        Usuario usuario = Usuario.builder().id(userId).build();
+        Usuario usuario = Usuario.builder().id(userId).ativo(true).build();
         CriarSimuladoRequest request = new CriarSimuladoRequest("Simulado TCU", TipoSimulado.MANUAL);
 
         when(userFinder.findById(userId)).thenReturn(usuario);
+        doNothing().when(usuarioValidator).validarUsuarioAtivo(usuario);
         doNothing().when(simuladoValidator).validarCriacao(request);
 
         Simulado simuladoSalvo = Simulado.builder()
@@ -79,13 +86,32 @@ class SimuladoServiceTest {
         assertThat(response.id()).isEqualTo(simuladoSalvo.getId());
         assertThat(response.titulo()).isEqualTo("Simulado TCU");
         assertThat(response.concluido()).isFalse();
+        verify(usuarioValidator).validarUsuarioAtivo(usuario);
     }
 
     @Test
-    @DisplayName("Deve listar simulados do usuário com métricas consolidadas")
+    @DisplayName("Deve lançar ForbiddenException ao tentar criar simulado com usuário inativo")
+    void deveLancarForbiddenAoCriarComUsuarioInativo() {
+        UUID userId = UUID.randomUUID();
+        Usuario usuario = Usuario.builder().id(userId).ativo(false).build();
+        CriarSimuladoRequest request = new CriarSimuladoRequest("Simulado TCU", TipoSimulado.MANUAL);
+
+        when(userFinder.findById(userId)).thenReturn(usuario);
+        doThrow(new ForbiddenException("Usuário inativo ou bloqueado no sistema."))
+                .when(usuarioValidator).validarUsuarioAtivo(usuario);
+
+        assertThatThrownBy(() -> simuladoService.criar(request, userId))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessage("Usuário inativo ou bloqueado no sistema.");
+
+        verify(simuladoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve listar simulados do usuário com métricas consolidadas validando usuário ativo")
     void deveListarSimuladosDoUsuario() {
         UUID userId = UUID.randomUUID();
-        Usuario usuario = Usuario.builder().id(userId).build();
+        Usuario usuario = Usuario.builder().id(userId).ativo(true).build();
         Pageable pageable = PageRequest.of(0, 10);
 
         UUID simId = UUID.randomUUID();
@@ -99,6 +125,7 @@ class SimuladoServiceTest {
         Page<Simulado> pagina = new PageImpl<>(List.of(sim));
 
         when(userFinder.findById(userId)).thenReturn(usuario);
+        doNothing().when(usuarioValidator).validarUsuarioAtivo(usuario);
         when(simuladoFinder.findByUsuario(usuario, pageable)).thenReturn(pagina);
         when(tentativaQuestaoFinder.contarPorSimulado(simId)).thenReturn(20L);
         when(tentativaQuestaoFinder.contarAcertosPorSimulado(simId)).thenReturn(15L);
@@ -111,6 +138,7 @@ class SimuladoServiceTest {
         assertThat(s.totalQuestoesRespondidas()).isEqualTo(20L);
         assertThat(s.totalAcertos()).isEqualTo(15L);
         assertThat(s.percentualAcerto()).isEqualTo(75.0);
+        verify(usuarioValidator).validarUsuarioAtivo(usuario);
     }
 
     @Test
@@ -118,7 +146,7 @@ class SimuladoServiceTest {
     void deveBuscarPorId() {
         UUID userId = UUID.randomUUID();
         UUID simId = UUID.randomUUID();
-        Usuario usuario = Usuario.builder().id(userId).build();
+        Usuario usuario = Usuario.builder().id(userId).ativo(true).build();
         Simulado sim = Simulado.builder()
                 .id(simId)
                 .usuario(usuario)
@@ -129,6 +157,7 @@ class SimuladoServiceTest {
                 .build();
 
         when(userFinder.findById(userId)).thenReturn(usuario);
+        doNothing().when(usuarioValidator).validarUsuarioAtivo(usuario);
         when(simuladoFinder.findById(simId)).thenReturn(sim);
         doNothing().when(simuladoValidator).validarPropriedade(usuario, sim);
         when(tentativaQuestaoFinder.contarPorSimulado(simId)).thenReturn(10L);
@@ -139,6 +168,7 @@ class SimuladoServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(simId);
         assertThat(response.totalAcertos()).isEqualTo(8L);
+        verify(usuarioValidator).validarUsuarioAtivo(usuario);
     }
 
     @Test
@@ -146,7 +176,7 @@ class SimuladoServiceTest {
     void deveConcluirSimuladoComSucesso() {
         UUID userId = UUID.randomUUID();
         UUID simId = UUID.randomUUID();
-        Usuario usuario = Usuario.builder().id(userId).build();
+        Usuario usuario = Usuario.builder().id(userId).ativo(true).build();
         Simulado sim = Simulado.builder()
                 .id(simId)
                 .usuario(usuario)
@@ -157,6 +187,7 @@ class SimuladoServiceTest {
                 .build();
 
         when(userFinder.findById(userId)).thenReturn(usuario);
+        doNothing().when(usuarioValidator).validarUsuarioAtivo(usuario);
         when(simuladoFinder.findById(simId)).thenReturn(sim);
         doNothing().when(simuladoValidator).validarPropriedade(usuario, sim);
         doNothing().when(simuladoValidator).validarConclusao(sim);
@@ -170,5 +201,6 @@ class SimuladoServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.concluido()).isTrue();
         assertThat(response.percentualAcerto()).isEqualTo(100.0);
+        verify(usuarioValidator).validarUsuarioAtivo(usuario);
     }
 }

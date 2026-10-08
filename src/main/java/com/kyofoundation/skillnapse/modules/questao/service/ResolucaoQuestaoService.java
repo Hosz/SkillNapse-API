@@ -2,6 +2,8 @@ package com.kyofoundation.skillnapse.modules.questao.service;
 
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
 import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
+import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
+import com.kyofoundation.skillnapse.modules.gamificacao.service.OfensivaService;
 import com.kyofoundation.skillnapse.modules.planoestudo.entity.Topico;
 import com.kyofoundation.skillnapse.modules.planoestudo.finder.TopicoFinder;
 import com.kyofoundation.skillnapse.modules.questao.dto.request.ResponderQuestaoRequest;
@@ -24,6 +26,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Service
@@ -37,11 +41,15 @@ public class ResolucaoQuestaoService {
     private final TopicoFinder topicoFinder;
     private final TentativaQuestaoFinder tentativaQuestaoFinder;
     private final UserFinder userFinder;
+    private final UsuarioValidator usuarioValidator;
     private final ResolucaoQuestaoValidator resolucaoQuestaoValidator;
+    private final OfensivaService ofensivaService;
 
     @Transactional
     public ResultadoResolucaoResponse responder(UUID questaoId, ResponderQuestaoRequest request, UUID userId) {
         Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         Questao questao = questaoFinder.findByIdComAlternativas(questaoId);
         AlternativaQuestao alternativaEscolhida = alternativaQuestaoFinder.findById(request.alternativaEscolhidaId());
         Simulado simulado = request.simuladoId() != null ? simuladoFinder.findById(request.simuladoId()) : null;
@@ -70,12 +78,20 @@ public class ResolucaoQuestaoService {
         );
 
         TentativaQuestao salva = tentativaQuestaoRepository.save(tentativa);
+
+        LocalDate dataEstudo = salva.getRespondidoEm() != null
+                ? salva.getRespondidoEm().atZone(ZoneOffset.UTC).toLocalDate()
+                : LocalDate.now(ZoneOffset.UTC);
+        ofensivaService.registrarEstudoSilencioso(usuario, dataEstudo);
+
         return ResolucaoQuestaoMapper.toResultadoResponse(salva, alternativaCorreta);
     }
 
     @Transactional(readOnly = true)
     public Page<HistoricoTentativaResponse> buscarHistorico(UUID userId, Boolean acertou, Pageable pageable) {
         Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         Page<TentativaQuestao> pagina = tentativaQuestaoFinder.buscarPorUsuario(usuario, acertou, pageable);
         return pagina.map(ResolucaoQuestaoMapper::toHistoricoResponse);
     }

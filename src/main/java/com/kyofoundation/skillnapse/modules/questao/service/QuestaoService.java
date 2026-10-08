@@ -1,5 +1,8 @@
 package com.kyofoundation.skillnapse.modules.questao.service;
 
+import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
+import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
+import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
 import com.kyofoundation.skillnapse.modules.questao.dto.request.CriarQuestaoRequest;
 import com.kyofoundation.skillnapse.modules.questao.dto.response.QuestaoDetalheResponse;
 import com.kyofoundation.skillnapse.modules.questao.dto.response.QuestaoResumoResponse;
@@ -22,13 +25,18 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class QuestaoService {
 
+    private final UserFinder userFinder;
+    private final UsuarioValidator usuarioValidator;
     private final QuestaoRepository questaoRepository;
     private final QuestaoFinder questaoFinder;
     private final QuestaoValidator questaoValidator;
     private final HashEnunciadoSupport hashEnunciadoSupport;
 
     @Transactional
-    public QuestaoDetalheResponse criar(CriarQuestaoRequest request) {
+    public QuestaoDetalheResponse criar(UUID userId, CriarQuestaoRequest request) {
+        Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         String hash = hashEnunciadoSupport.gerarHash(request.enunciado());
         questaoValidator.validarCriacao(request, hash);
         Questao questao = QuestaoMapper.toEntity(request, hash);
@@ -38,6 +46,7 @@ public class QuestaoService {
 
     @Transactional(readOnly = true)
     public Page<QuestaoResumoResponse> buscarComFiltros(
+            UUID userId,
             String assuntoGeral,
             String topicoReferencia,
             String banca,
@@ -46,6 +55,9 @@ public class QuestaoService {
             String termoBusca,
             Pageable pageable
     ) {
+        Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         Page<Questao> pagina = questaoFinder.buscarComFiltros(
                 assuntoGeral,
                 topicoReferencia,
@@ -59,7 +71,10 @@ public class QuestaoService {
     }
 
     @Transactional(readOnly = true)
-    public QuestaoDetalheResponse buscarPorId(UUID id) {
+    public QuestaoDetalheResponse buscarPorId(UUID userId, UUID id) {
+        Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         Questao questao = questaoFinder.findByIdComAlternativas(id);
         return QuestaoMapper.toDetalheResponse(questao);
     }

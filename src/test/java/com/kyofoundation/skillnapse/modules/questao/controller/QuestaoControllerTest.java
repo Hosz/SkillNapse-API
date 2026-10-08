@@ -62,7 +62,7 @@ class QuestaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve cadastrar nova questão com status 201 Created")
+    @DisplayName("Deve cadastrar nova questão com status 201 Created passando JWT")
     void deveCadastrarQuestaoComSucesso() throws Exception {
         UUID userId = UUID.randomUUID();
         UUID questaoId = UUID.randomUUID();
@@ -98,7 +98,7 @@ class QuestaoControllerTest {
                 )
         );
 
-        when(questaoService.criar(any(CriarQuestaoRequest.class))).thenReturn(response);
+        when(questaoService.criar(eq(userId), any(CriarQuestaoRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/questoes")
                         .with(jwt().jwt(builder -> builder.subject(userId.toString())))
@@ -111,7 +111,7 @@ class QuestaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve buscar questões com filtros com status 200 OK")
+    @DisplayName("Deve buscar questões com filtros com status 200 OK passando JWT")
     void deveBuscarQuestoesComFiltros() throws Exception {
         UUID userId = UUID.randomUUID();
         QuestaoResumoResponse resumo = new QuestaoResumoResponse(
@@ -126,7 +126,7 @@ class QuestaoControllerTest {
                 4
         );
 
-        when(questaoService.buscarComFiltros(any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        when(questaoService.buscarComFiltros(eq(userId), any(), any(), any(), any(), any(), any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(resumo)));
 
         mockMvc.perform(get("/api/v1/questoes")
@@ -138,7 +138,7 @@ class QuestaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve buscar questão por ID com status 200 OK")
+    @DisplayName("Deve buscar questão por ID com status 200 OK passando JWT")
     void deveBuscarQuestaoPorId() throws Exception {
         UUID userId = UUID.randomUUID();
         UUID questaoId = UUID.randomUUID();
@@ -157,7 +157,7 @@ class QuestaoControllerTest {
                 List.of()
         );
 
-        when(questaoService.buscarPorId(questaoId)).thenReturn(detalhe);
+        when(questaoService.buscarPorId(eq(userId), eq(questaoId))).thenReturn(detalhe);
 
         mockMvc.perform(get("/api/v1/questoes/{id}", questaoId)
                         .with(jwt().jwt(builder -> builder.subject(userId.toString()))))

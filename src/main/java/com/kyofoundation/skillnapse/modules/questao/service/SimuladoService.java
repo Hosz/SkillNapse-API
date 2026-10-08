@@ -2,6 +2,7 @@ package com.kyofoundation.skillnapse.modules.questao.service;
 
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
 import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
+import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
 import com.kyofoundation.skillnapse.modules.questao.dto.request.CriarSimuladoRequest;
 import com.kyofoundation.skillnapse.modules.questao.dto.response.SimuladoResponse;
 import com.kyofoundation.skillnapse.modules.questao.entity.Simulado;
@@ -27,10 +28,13 @@ public class SimuladoService {
     private final SimuladoValidator simuladoValidator;
     private final TentativaQuestaoFinder tentativaQuestaoFinder;
     private final UserFinder userFinder;
+    private final UsuarioValidator usuarioValidator;
 
     @Transactional
     public SimuladoResponse criar(CriarSimuladoRequest request, UUID userId) {
         Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         simuladoValidator.validarCriacao(request);
         Simulado simulado = SimuladoMapper.toEntity(request, usuario);
         Simulado salvo = simuladoRepository.save(simulado);
@@ -40,6 +44,8 @@ public class SimuladoService {
     @Transactional(readOnly = true)
     public Page<SimuladoResponse> listarPorUsuario(UUID userId, Pageable pageable) {
         Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         Page<Simulado> simulados = simuladoFinder.findByUsuario(usuario, pageable);
         return simulados.map(s -> {
             long total = tentativaQuestaoFinder.contarPorSimulado(s.getId());
@@ -51,6 +57,8 @@ public class SimuladoService {
     @Transactional(readOnly = true)
     public SimuladoResponse buscarPorId(UUID id, UUID userId) {
         Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         Simulado simulado = simuladoFinder.findById(id);
         simuladoValidator.validarPropriedade(usuario, simulado);
         long total = tentativaQuestaoFinder.contarPorSimulado(simulado.getId());
@@ -61,6 +69,8 @@ public class SimuladoService {
     @Transactional
     public SimuladoResponse concluir(UUID id, UUID userId) {
         Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         Simulado simulado = simuladoFinder.findById(id);
         simuladoValidator.validarPropriedade(usuario, simulado);
         simuladoValidator.validarConclusao(simulado);
