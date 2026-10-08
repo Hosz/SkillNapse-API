@@ -30,4 +30,8 @@ public record PromptRequest(
     public PromptRequest(String prompt, String systemMessage) {
         this(prompt, systemMessage, null, null, Map.of());
     }
+
+    public PromptRequest(String prompt, String systemMessage, Double temperature, Integer maxTokens) {
+        this(prompt, systemMessage, temperature, maxTokens, Map.of());
+    }
 }
