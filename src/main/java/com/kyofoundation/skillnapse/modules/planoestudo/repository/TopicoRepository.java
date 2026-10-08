@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface TopicoRepository extends JpaRepository<Topico, UUID> {
     List<Topico> findByMateriaAndTopicoPaiIsNullOrderByOrdemAsc(Materia materia);
     List<Topico> findByMateriaOrderByOrdemAsc(Materia materia);
+    List<Topico> findByMateriaIn(List<Materia> materias);
 }
