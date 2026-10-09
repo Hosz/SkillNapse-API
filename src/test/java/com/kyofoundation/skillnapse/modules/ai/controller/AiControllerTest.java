@@ -17,8 +17,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -40,6 +42,7 @@ class AiControllerTest {
     @Test
     @DisplayName("Deve responder 200 OK com o JSON gerado pela IA")
     void deveResponder200ComSucesso() throws Exception {
+        UUID userId = UUID.randomUUID();
         PromptRequest request = new PromptRequest("Explique polimorfismo", "Você é um tutor", 0.7, 300, Map.of());
         AiGenerationResponse response = new AiGenerationResponse(
                 "Polimorfismo é a capacidade de um objeto assumir muitas formas.",
@@ -51,10 +54,10 @@ class AiControllerTest {
                 Instant.now()
         );
 
-        when(aiOrchestratorService.generate(any(PromptRequest.class))).thenReturn(response);
+        when(aiOrchestratorService.generate(eq(userId), any(PromptRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/ai/generate")
-                        .with(jwt())
+                        .with(jwt().jwt(builder -> builder.subject(userId.toString())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -76,8 +79,9 @@ class AiControllerTest {
     @Test
     @DisplayName("Deve retornar 400 Bad Request quando JSON enviado for malformado")
     void deveRetornar400QuandoJsonForMalformado() throws Exception {
+        UUID userId = UUID.randomUUID();
         mockMvc.perform(post("/api/v1/ai/generate")
-                        .with(jwt())
+                        .with(jwt().jwt(builder -> builder.subject(userId.toString())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{malformed json syntax"))
                 .andExpect(status().isBadRequest())
@@ -89,12 +93,13 @@ class AiControllerTest {
     @Test
     @DisplayName("Deve retornar 500 com mensagem genérica quando ocorrer erro inesperado sem vazar detalhes internos")
     void deveRetornar500ComMensagemGenericaSemVazarDetalhesInternos() throws Exception {
+        UUID userId = UUID.randomUUID();
         PromptRequest request = new PromptRequest("Explique polimorfismo");
-        when(aiOrchestratorService.generate(any(PromptRequest.class)))
+        when(aiOrchestratorService.generate(eq(userId), any(PromptRequest.class)))
                 .thenThrow(new RuntimeException("Database connection timeout: postgresql://secret-host:5432"));
 
         mockMvc.perform(post("/api/v1/ai/generate")
-                        .with(jwt())
+                        .with(jwt().jwt(builder -> builder.subject(userId.toString())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())

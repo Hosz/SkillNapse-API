@@ -28,6 +28,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -58,6 +59,9 @@ class MetaDiariaServiceTest {
 
     @Mock
     private OfensivaService ofensivaService;
+
+    @Mock
+    private com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator usuarioValidator;
 
     @InjectMocks
     private MetaDiariaService metaDiariaService;
@@ -160,5 +164,17 @@ class MetaDiariaServiceTest {
         assertThat(painel).isNotNull();
         assertThat(painel.ofensiva().diasConsecutivosAtual()).isEqualTo(2);
         assertThat(painel.progressoHoje().minutosEstudadosHoje()).isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("[obterConfiguracaoMetas] Deve lançar ForbiddenException quando usuário inativo")
+    void deveLancarForbiddenAoConsultarMetasComUsuarioInativo() {
+        when(userFinder.findById(usuario.getId())).thenReturn(usuario);
+        doThrow(new com.kyofoundation.skillnapse.common.exception.ForbiddenException("Usuário inativo ou bloqueado no sistema."))
+                .when(usuarioValidator).validarUsuarioAtivo(usuario);
+
+        assertThatThrownBy(() -> metaDiariaService.obterConfiguracaoMetas(usuario.getId()))
+                .isInstanceOf(com.kyofoundation.skillnapse.common.exception.ForbiddenException.class)
+                .hasMessage("Usuário inativo ou bloqueado no sistema.");
     }
 }

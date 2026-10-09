@@ -1,6 +1,7 @@
 package com.kyofoundation.skillnapse.modules.cronograma.service;
 
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
+import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
 import com.kyofoundation.skillnapse.modules.cronograma.dto.request.AtualizarTopicosRevisaoRequest;
 import com.kyofoundation.skillnapse.modules.cronograma.dto.request.CriarBlocoRevisaoDiarioRequest;
 import com.kyofoundation.skillnapse.modules.cronograma.dto.request.CriarBlocoRevisaoTemplateRequest;
@@ -33,6 +34,7 @@ public class BlocoRevisaoService {
 
     private final BlocoRevisaoFinder blocoRevisaoFinder;
     private final BlocoRevisaoValidator blocoRevisaoValidator;
+    private final UsuarioValidator usuarioValidator;
     private final BlocoHorarioTemplateRepository blocoHorarioTemplateRepository;
     private final ExcecaoDiariaRepository excecaoDiariaRepository;
     private final FlashcardRepository flashcardRepository;
@@ -40,6 +42,8 @@ public class BlocoRevisaoService {
     @Transactional
     public BlocoRevisaoResponse criarBlocoRevisaoTemplate(UUID usuarioId, CriarBlocoRevisaoTemplateRequest request) {
         Usuario usuario = blocoRevisaoFinder.buscarUsuario(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         TemplateSemanal template = blocoRevisaoFinder.buscarTemplate(request.templateSemanalId());
         blocoRevisaoValidator.validarCriacaoTemplate(request, template, usuario);
 
@@ -58,6 +62,8 @@ public class BlocoRevisaoService {
     @Transactional
     public BlocoRevisaoResponse criarBlocoRevisaoDiario(UUID usuarioId, CriarBlocoRevisaoDiarioRequest request) {
         Usuario usuario = blocoRevisaoFinder.buscarUsuario(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         blocoRevisaoValidator.validarCriacaoDiaria(request);
 
         Materia materia = blocoRevisaoFinder.buscarMateriaOpcional(request.materiaId());
@@ -75,6 +81,8 @@ public class BlocoRevisaoService {
     @Transactional
     public BlocoRevisaoResponse atualizarTopicosBlocoTemplate(UUID usuarioId, UUID blocoId, AtualizarTopicosRevisaoRequest request) {
         Usuario usuario = blocoRevisaoFinder.buscarUsuario(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         BlocoHorarioTemplate bloco = blocoRevisaoFinder.buscarBlocoTemplate(blocoId);
         blocoRevisaoValidator.validarPropriedadeTemplate(bloco, usuario);
         blocoRevisaoValidator.validarTipoBlocoRevisao(bloco.getTipoBloco());
@@ -91,6 +99,8 @@ public class BlocoRevisaoService {
     @Transactional
     public BlocoRevisaoResponse atualizarTopicosBlocoDiario(UUID usuarioId, UUID excecaoId, AtualizarTopicosRevisaoRequest request) {
         Usuario usuario = blocoRevisaoFinder.buscarUsuario(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         ExcecaoDiaria excecao = blocoRevisaoFinder.buscarExcecaoDiaria(excecaoId);
         blocoRevisaoValidator.validarPropriedadeExcecao(excecao, usuario);
         blocoRevisaoValidator.validarTipoBlocoRevisao(excecao.getTipoBloco());
@@ -107,6 +117,8 @@ public class BlocoRevisaoService {
     @Transactional(readOnly = true)
     public BlocoRevisaoResponse visualizarBlocoRevisaoTemplate(UUID usuarioId, UUID blocoId) {
         Usuario usuario = blocoRevisaoFinder.buscarUsuario(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         BlocoHorarioTemplate bloco = blocoRevisaoFinder.buscarBlocoTemplate(blocoId);
         blocoRevisaoValidator.validarPropriedadeTemplate(bloco, usuario);
         blocoRevisaoValidator.validarTipoBlocoRevisao(bloco.getTipoBloco());
@@ -117,6 +129,8 @@ public class BlocoRevisaoService {
     @Transactional(readOnly = true)
     public BlocoRevisaoResponse visualizarBlocoRevisaoDiario(UUID usuarioId, UUID excecaoId) {
         Usuario usuario = blocoRevisaoFinder.buscarUsuario(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         ExcecaoDiaria excecao = blocoRevisaoFinder.buscarExcecaoDiaria(excecaoId);
         blocoRevisaoValidator.validarPropriedadeExcecao(excecao, usuario);
         blocoRevisaoValidator.validarTipoBlocoRevisao(excecao.getTipoBloco());
@@ -128,6 +142,8 @@ public class BlocoRevisaoService {
     public ConteudoBlocoRevisaoResponse obterConteudoRevisaoTemplate(UUID usuarioId, UUID blocoId, LocalDate dataReferencia) {
         LocalDate dataRef = dataReferencia != null ? dataReferencia : LocalDate.now();
         Usuario usuario = blocoRevisaoFinder.buscarUsuario(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         BlocoHorarioTemplate bloco = blocoRevisaoFinder.buscarBlocoTemplate(blocoId);
         blocoRevisaoValidator.validarPropriedadeTemplate(bloco, usuario);
         blocoRevisaoValidator.validarTipoBlocoRevisao(bloco.getTipoBloco());
@@ -144,6 +160,8 @@ public class BlocoRevisaoService {
     @Transactional(readOnly = true)
     public ConteudoBlocoRevisaoResponse obterConteudoRevisaoDiario(UUID usuarioId, UUID excecaoId, LocalDate dataReferencia) {
         Usuario usuario = blocoRevisaoFinder.buscarUsuario(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         ExcecaoDiaria excecao = blocoRevisaoFinder.buscarExcecaoDiaria(excecaoId);
         blocoRevisaoValidator.validarPropriedadeExcecao(excecao, usuario);
         blocoRevisaoValidator.validarTipoBlocoRevisao(excecao.getTipoBloco());

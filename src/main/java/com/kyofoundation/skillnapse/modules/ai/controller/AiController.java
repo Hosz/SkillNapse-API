@@ -5,6 +5,7 @@ import com.kyofoundation.skillnapse.modules.ai.dto.AiGenerationResponse;
 import com.kyofoundation.skillnapse.modules.ai.dto.PromptRequest;
 import com.kyofoundation.skillnapse.modules.ai.service.AiOrchestratorService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,10 +15,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/ai")
@@ -48,10 +53,19 @@ public class AiController {
                     responseCode = "401",
                     description = "Não autorizado / Token JWT ausente ou inválido",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Usuário inativo ou não autorizado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
             )
     })
-    public ResponseEntity<AiGenerationResponse> generate(@RequestBody @Valid PromptRequest request) {
-        AiGenerationResponse response = aiOrchestratorService.generate(request);
+    public ResponseEntity<AiGenerationResponse> generate(
+            @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt,
+            @RequestBody @Valid PromptRequest request
+    ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        AiGenerationResponse response = aiOrchestratorService.generate(userId, request);
         return ResponseEntity.ok(response);
     }
 }

@@ -3,6 +3,9 @@ package com.kyofoundation.skillnapse.modules.ai.service;
 import com.kyofoundation.skillnapse.modules.ai.dto.AiGenerationResponse;
 import com.kyofoundation.skillnapse.modules.ai.dto.PromptRequest;
 import com.kyofoundation.skillnapse.modules.ai.validator.AiPromptValidator;
+import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
+import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
+import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
@@ -13,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -21,9 +25,17 @@ public class AiOrchestratorService {
     private final ChatClient.Builder chatClientBuilder;
     private final ChatModel chatModel;
     private final AiPromptValidator aiPromptValidator;
+    private final UserFinder userFinder;
+    private final UsuarioValidator usuarioValidator;
 
     @Value("${skillnapse.ai.provider:}")
     private String configuredProvider;
+
+    public AiGenerationResponse generate(UUID userId, PromptRequest request) {
+        Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+        return generate(request);
+    }
 
     public AiGenerationResponse generate(PromptRequest request) {
         aiPromptValidator.validatePromptRequest(request);
