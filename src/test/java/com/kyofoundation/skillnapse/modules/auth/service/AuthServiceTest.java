@@ -8,10 +8,12 @@ import com.kyofoundation.skillnapse.modules.auth.dto.response.LoginResponse;
 import com.kyofoundation.skillnapse.modules.auth.dto.response.RegistroResponse;
 import com.kyofoundation.skillnapse.modules.auth.entity.TokenAtualizacao;
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
+import com.kyofoundation.skillnapse.modules.auth.finder.TokenAtualizacaoFinder;
 import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
 import com.kyofoundation.skillnapse.modules.auth.repository.TokenAtualizacaoRepository;
 import com.kyofoundation.skillnapse.modules.auth.repository.UsuarioRepository;
 import com.kyofoundation.skillnapse.modules.auth.support.JwtService;
+import com.kyofoundation.skillnapse.modules.auth.validator.TokenAtualizacaoValidator;
 import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,6 +55,12 @@ class AuthServiceTest {
 
     @Mock
     private UserFinder userFinder;
+
+    @Mock
+    private TokenAtualizacaoFinder tokenAtualizacaoFinder;
+
+    @Mock
+    private TokenAtualizacaoValidator tokenAtualizacaoValidator;
 
     @InjectMocks
     private AuthService authService;
@@ -154,7 +162,7 @@ class AuthServiceTest {
                 .build();
 
         when(jwtService.hashToken(tokenAntigo)).thenReturn(hashAntigo);
-        when(tokenAtualizacaoRepository.findByTokenForUpdate(hashAntigo)).thenReturn(Optional.of(tokenSalvo));
+        when(tokenAtualizacaoFinder.findByTokenForUpdate(hashAntigo)).thenReturn(tokenSalvo);
         doNothing().when(usuarioValidator).validarUsuarioAtivo(usuario);
 
         when(jwtService.gerarAccessToken(usuario)).thenReturn("novo.access.jwt");
@@ -192,7 +200,9 @@ class AuthServiceTest {
                 .build();
 
         when(jwtService.hashToken(tokenRevogado)).thenReturn(hashRevogado);
-        when(tokenAtualizacaoRepository.findByTokenForUpdate(hashRevogado)).thenReturn(Optional.of(tokenSalvo));
+        when(tokenAtualizacaoFinder.findByTokenForUpdate(hashRevogado)).thenReturn(tokenSalvo);
+        org.mockito.Mockito.doThrow(new UnauthorizedException("Tentativa de reutilização de token detectada. A sessão foi invalidada por segurança."))
+                .when(tokenAtualizacaoValidator).validarNaoRevogado(tokenSalvo);
 
         assertThatThrownBy(() -> authService.renovarToken(tokenRevogado))
                 .isInstanceOf(UnauthorizedException.class)
@@ -213,7 +223,9 @@ class AuthServiceTest {
                 .build();
 
         when(jwtService.hashToken(tokenExpirado)).thenReturn(hashExpirado);
-        when(tokenAtualizacaoRepository.findByTokenForUpdate(hashExpirado)).thenReturn(Optional.of(tokenSalvo));
+        when(tokenAtualizacaoFinder.findByTokenForUpdate(hashExpirado)).thenReturn(tokenSalvo);
+        org.mockito.Mockito.doThrow(new UnauthorizedException("Token de atualização expirado."))
+                .when(tokenAtualizacaoValidator).validarNaoExpirado(tokenSalvo);
 
         assertThatThrownBy(() -> authService.renovarToken(tokenExpirado))
                 .isInstanceOf(UnauthorizedException.class)
@@ -226,6 +238,9 @@ class AuthServiceTest {
     @Test
     @DisplayName("Deve lançar BadRequestException quando refresh token for nulo ou vazio")
     void deveLancarBadRequestExceptionQuandoRefreshTokenVazio() {
+        org.mockito.Mockito.doThrow(new BadRequestException("O token de atualização não pode ser nulo ou vazio."))
+                .when(tokenAtualizacaoValidator).validarTokenString("");
+
         assertThatThrownBy(() -> authService.renovarToken(""))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("O token de atualização não pode ser nulo ou vazio.");
@@ -235,6 +250,9 @@ class AuthServiceTest {
     @DisplayName("Deve lançar BadRequestException quando refresh token exceder 255 caracteres")
     void deveLancarBadRequestExceptionQuandoRefreshTokenExceder255Caracteres() {
         String tokenLongo = "T".repeat(256);
+        org.mockito.Mockito.doThrow(new BadRequestException("O token de atualização não pode ter mais de 255 caracteres."))
+                .when(tokenAtualizacaoValidator).validarTokenString(tokenLongo);
+
         assertThatThrownBy(() -> authService.renovarToken(tokenLongo))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("O token de atualização não pode ter mais de 255 caracteres.");
@@ -251,7 +269,7 @@ class AuthServiceTest {
                 .build();
 
         when(jwtService.hashToken(token)).thenReturn(tokenHash);
-        when(tokenAtualizacaoRepository.findByToken(tokenHash)).thenReturn(Optional.of(tokenSalvo));
+        when(tokenAtualizacaoFinder.findByToken(tokenHash)).thenReturn(Optional.of(tokenSalvo));
 
         authService.revogarToken(token);
 

@@ -1,6 +1,5 @@
 package com.kyofoundation.skillnapse.modules.auth.service;
 
-import com.kyofoundation.skillnapse.common.exception.BadRequestException;
 import com.kyofoundation.skillnapse.common.exception.UnauthorizedException;
 import com.kyofoundation.skillnapse.modules.auth.dto.request.LoginRequest;
 import com.kyofoundation.skillnapse.modules.auth.dto.request.RegistroRequest;
@@ -8,11 +7,13 @@ import com.kyofoundation.skillnapse.modules.auth.dto.response.LoginResponse;
 import com.kyofoundation.skillnapse.modules.auth.dto.response.RegistroResponse;
 import com.kyofoundation.skillnapse.modules.auth.entity.TokenAtualizacao;
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
+import com.kyofoundation.skillnapse.modules.auth.finder.TokenAtualizacaoFinder;
 import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
 import com.kyofoundation.skillnapse.modules.auth.mapper.AuthMapper;
 import com.kyofoundation.skillnapse.modules.auth.repository.TokenAtualizacaoRepository;
 import com.kyofoundation.skillnapse.modules.auth.repository.UsuarioRepository;
 import com.kyofoundation.skillnapse.modules.auth.support.JwtService;
+import com.kyofoundation.skillnapse.modules.auth.validator.TokenAtualizacaoValidator;
 import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,8 +30,10 @@ public class AuthService {
     private final TokenAtualizacaoRepository tokenAtualizacaoRepository;
     private final PasswordEncoder passwordEncoder;
     private final UsuarioValidator usuarioValidator;
+    private final TokenAtualizacaoValidator tokenAtualizacaoValidator;
     private final JwtService jwtService;
     private final UserFinder userFinder;
+    private final TokenAtualizacaoFinder tokenAtualizacaoFinder;
 
     @Transactional
     public RegistroResponse register(RegistroRequest request) {
@@ -69,28 +72,21 @@ public class AuthService {
 
     @Transactional(noRollbackFor = UnauthorizedException.class)
     public LoginResponse renovarToken(String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) {
-            throw new BadRequestException("O token de atualização não pode ser nulo ou vazio.");
-        }
-        if (refreshToken.length() > 255) {
-            throw new BadRequestException("O token de atualização não pode ter mais de 255 caracteres.");
-        }
+        tokenAtualizacaoValidator.validarTokenString(refreshToken);
 
         String tokenHash = jwtService.hashToken(refreshToken);
-
-        TokenAtualizacao tokenSalvo = tokenAtualizacaoRepository.findByTokenForUpdate(tokenHash)
-                .orElseThrow(() -> new UnauthorizedException("Token de atualização inválido ou revogado."));
+        TokenAtualizacao tokenSalvo = tokenAtualizacaoFinder.findByTokenForUpdate(tokenHash);
 
         if (Boolean.TRUE.equals(tokenSalvo.getRevogado())) {
             // Detecção de reutilização de refresh token (Token Reuse Detection - RFC 6819)
             tokenAtualizacaoRepository.revogarTodosPorUsuario(tokenSalvo.getUsuario().getId());
-            throw new UnauthorizedException("Tentativa de reutilização de token detectada. A sessão foi invalidada por segurança.");
+            tokenAtualizacaoValidator.validarNaoRevogado(tokenSalvo);
         }
 
         if (tokenSalvo.getExpiraEm().isBefore(Instant.now())) {
             tokenSalvo.setRevogado(true);
             tokenAtualizacaoRepository.save(tokenSalvo);
-            throw new UnauthorizedException("Token de atualização expirado.");
+            tokenAtualizacaoValidator.validarNaoExpirado(tokenSalvo);
         }
 
         Usuario usuario = tokenSalvo.getUsuario();
@@ -120,7 +116,7 @@ public class AuthService {
     public void revogarToken(String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
             String tokenHash = jwtService.hashToken(refreshToken);
-            tokenAtualizacaoRepository.findByToken(tokenHash).ifPresent(token -> {
+            tokenAtualizacaoFinder.findByToken(tokenHash).ifPresent(token -> {
                 token.setRevogado(true);
                 tokenAtualizacaoRepository.save(token);
             });
