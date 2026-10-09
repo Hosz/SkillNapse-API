@@ -30,6 +30,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.kyofoundation.skillnapse.modules.redacao.dto.response.ResultadoSubmissaoImagemResponse;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.UUID;
 
 @RestController
@@ -59,6 +63,27 @@ public class SubmissaoRedacaoController {
     ) {
         UUID userId = UUID.fromString(jwt.getSubject());
         return ResponseEntity.status(HttpStatus.CREATED).body(submissaoRedacaoService.submeterRedacao(userId, request));
+    }
+
+    @PostMapping(value = "/imagem", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Submeter imagem de redação manuscrita", description = "Envia foto da folha de redação. A IA avalia legibilidade (mínimo 85%), transcreve e realiza a correção analítica completa (escala 0 a 1000).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Análise da imagem processada com sucesso (contendo transcrição e nota se legível >= 85%, ou recomendação de transcrição manual se ilegível)",
+                    content = @Content(schema = @Schema(implementation = ResultadoSubmissaoImagemResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Imagem inválida, corrompida ou fora do limite de tamanho",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado ao tema de redação",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Tema de redação não encontrado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<ResultadoSubmissaoImagemResponse> submeterImagem(
+            @RequestParam("temaRedacaoId") UUID temaRedacaoId,
+            @RequestParam("imagem") MultipartFile imagem,
+            @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt
+    ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        return ResponseEntity.ok(submissaoRedacaoService.submeterRedacaoImagem(userId, temaRedacaoId, imagem));
     }
 
     @GetMapping

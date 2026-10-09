@@ -31,10 +31,12 @@ class PromptCorrecaoRedacaoSupportTest {
         assertThat(prompt).contains("Governança digital");
         assertThat(prompt).contains("Extensão de 30 linhas");
         assertThat(prompt).contains(textoAluno);
-        assertThat(prompt).contains("Gramática e Norma-Padrão");
-        assertThat(prompt).contains("Coesão e Coerência");
-        assertThat(prompt).contains("Estrutura Dissertativa e Argumentação");
-        assertThat(prompt).contains("Atendimento ao Tema e Itens da Proposta");
+        assertThat(prompt).contains("Competência 1 - Domínio da Norma-Padrão");
+        assertThat(prompt).contains("Competência 2 - Compreensão do Tema e Aplicação de Repertório");
+        assertThat(prompt).contains("Competência 3 - Projeto de Texto e Estruturação Argumentativa");
+        assertThat(prompt).contains("Competência 4 - Mecanismos Linguísticos e Coesão Textual");
+        assertThat(prompt).contains("Competência 5 - Proposta de Intervenção e Conclusão");
+        assertThat(prompt).contains("1000.0");
         assertThat(prompt).contains("JSON");
     }
 

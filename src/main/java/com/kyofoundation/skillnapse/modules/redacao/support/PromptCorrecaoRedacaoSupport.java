@@ -29,12 +29,13 @@ public class PromptCorrecaoRedacaoSupport {
                 \"\"\"
 
                 INSTRUÇÕES E DIRETRIZES DA CORREÇÃO:
-                1. Avalie detalhadamente as 4 competências fundamentais, atribuindo a cada uma nota de 0.0 a 10.0:
-                   - "Gramática e Norma-Padrão": Ortografia, concordância, regência, crase, pontuação e precisão vocabular. Liste desvios específicos encontrados.
-                   - "Coesão e Coerência": Articulação lógica, uso adequado de conectivos inter e intraparágrafos, progressão temática sem repetições viciosas.
-                   - "Estrutura Dissertativa e Argumentação": Defesa clara da tese, fundamentação com repertório sociocultural legitimado, coerência argumentativa.
-                   - "Atendimento ao Tema e Itens da Proposta": Cumprimento integral do recorte temático e das orientações formais solicitadas.
-                2. Calcule a "notaGeral" na escala de 0.0 a 10.0 (com até duas casas decimais).
+                1. Avalie detalhadamente as 5 competências fundamentais (padrão ENEM / bancas examinadoras de elite), atribuindo a cada uma nota de 0.0 a 200.0:
+                   - "Competência 1 - Domínio da Norma-Padrão": Ortografia, acentuação, concordância, regência, crase, pontuação e precisão vocabular. Liste desvios específicos encontrados.
+                   - "Competência 2 - Compreensão do Tema e Aplicação de Repertório": Interpretação do tema, abordagem sem tangenciamento e uso produtivo de repertório sociocultural legitimado.
+                   - "Competência 3 - Projeto de Texto e Estruturação Argumentativa": Organização lógica das ideias, defesa consistente do ponto de vista e articulação dos argumentos.
+                   - "Competência 4 - Mecanismos Linguísticos e Coesão Textual": Conectivos inter e intraparágrafos, progressão referencial e sequencial sem repetições viciosas.
+                   - "Competência 5 - Proposta de Intervenção e Conclusão": Elaboração de solução ou conclusão articulada com os agentes, ações, meios e efeitos pertinentes à temática.
+                2. Calcule a "notaGeral" na escala de 0.0 a 1000.0 (soma das competências, com até duas casas decimais).
                 3. Em "comentariosGerais", apresente um diagnóstico pedagógico consolidado destacando pontos fortes e principais fragilidades a corrigir.
                 4. Em "sugestoesReescrita", identifique de 2 a 4 trechos reais do texto do candidato que apresentem truncamento, informalidade ou fragilidade sintática/argumentativa, fornecendo a versão aprimorada e a fundamentação explicativa.
 

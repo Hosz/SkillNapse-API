@@ -90,6 +90,22 @@ public class AiOrchestratorService {
         return spec.call().entity(responseType);
     }
 
+    public <T> T generateStructuredMultimodal(
+            PromptRequest request,
+            org.springframework.util.MimeType mimeType,
+            org.springframework.core.io.Resource mediaResource,
+            Class<T> responseType
+    ) {
+        aiPromptValidator.validateStructuredRequest(request, responseType);
+
+        ChatClient chatClient = chatClientBuilder.build();
+        ChatClient.ChatClientRequestSpec spec = chatClient.prompt()
+                .user(userSpec -> userSpec.text(request.prompt()).media(mimeType, mediaResource));
+        spec = applyPromptOptions(spec, request);
+
+        return spec.call().entity(responseType);
+    }
+
     public String getActiveProviderName() {
         if (configuredProvider != null && !configuredProvider.isBlank()) {
             return configuredProvider;

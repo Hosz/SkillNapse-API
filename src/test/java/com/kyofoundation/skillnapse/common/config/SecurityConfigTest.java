@@ -115,4 +115,20 @@ class SecurityConfigTest {
         assertThat(openAPI.getComponents().getSecuritySchemes().get(OpenApiConfig.SECURITY_SCHEME_NAME).getScheme())
                 .isEqualTo("bearer");
     }
+
+    @Test
+    @DisplayName("Deve configurar CorsConfigurationSource com métodos, headers e origens permitidas")
+    void deveConfigurarCorsConfigurationSourceComSucesso() {
+        org.springframework.web.cors.CorsConfigurationSource source = securityConfig.corsConfigurationSource();
+        assertThat(source).isNotNull();
+
+        org.springframework.mock.web.MockHttpServletRequest request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setRequestURI("/api/v1/planos");
+        org.springframework.web.cors.CorsConfiguration config = source.getCorsConfiguration(request);
+
+        assertThat(config).isNotNull();
+        assertThat(config.getAllowedMethods()).contains("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
+        assertThat(config.getAllowedHeaders()).contains("Authorization", "Content-Type");
+        assertThat(config.getAllowCredentials()).isTrue();
+    }
 }

@@ -75,7 +75,7 @@ public class EditalConversaoSupport {
             if (itemMateria.topicos() != null) {
                 for (int j = 0; j < itemMateria.topicos().size(); j++) {
                     EditalTopicoItem itemTopico = itemMateria.topicos().get(j);
-                    int peso = (itemTopico.pesoEdital() != null && itemTopico.pesoEdital() >= 1 && itemTopico.pesoEdital() <= 5)
+                    int peso = (itemTopico.pesoEdital() != null && itemTopico.pesoEdital() >= 1 && itemTopico.pesoEdital() <= 10)
                             ? itemTopico.pesoEdital() : 1;
 
                     Topico topicoPai = Topico.builder()

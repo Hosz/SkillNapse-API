@@ -17,7 +17,7 @@ public class TopicoValidator {
 
     private static final int MAX_TITULO_LENGTH = 200;
     private static final int MIN_PESO = 1;
-    private static final int MAX_PESO = 5;
+    private static final int MAX_PESO = 10;
 
     public void validarCriacao(CriarTopicoRequest request) {
         if (request == null) {

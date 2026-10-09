@@ -25,7 +25,7 @@ public class AutoAgendamentoPromptSupport {
             2. Cada bloco de estudo deve ter a duração configurada (em minutos). Respeite os intervalos de descanso entre blocos dentro da janela.
             3. Não gere blocos conflitantes ou com horários sobrepostos no mesmo dia da semana.
             4. Prática Intercalada (Interleaving): evite blocos consecutivos da mesma matéria. Alterne disciplinas teóricas e práticas para otimizar a retenção e diminuir a fadiga cognitiva.
-            5. Priorização por Peso e Proficiência: matérias e tópicos com maior 'pesoEdital' (4 e 5) ou menor proficiência ('INICIANTE') devem ter prioridade na alocação de tempo conforme a estratégia informada.
+            5. Priorização por Peso e Proficiência: matérias e tópicos com maior 'pesoEdital' (7 a 10) ou menor proficiência ('INICIANTE') devem ter prioridade na alocação de tempo conforme a estratégia informada.
             6. Inclusão de Tipos de Bloco:
                - Use 'FOCO_TEORIA' para aprendizado de tópicos.
                - Se solicitado 'incluirRevisao', adicione blocos do tipo 'REVISAO'.

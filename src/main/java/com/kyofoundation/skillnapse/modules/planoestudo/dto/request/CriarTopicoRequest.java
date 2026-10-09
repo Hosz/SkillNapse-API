@@ -16,7 +16,7 @@ public record CriarTopicoRequest(
         UUID topicoPaiId,
 
         @Min(value = 1, message = "O peso no edital deve ser no mínimo 1.")
-        @Max(value = 5, message = "O peso no edital deve ser no máximo 5.")
+        @Max(value = 10, message = "O peso no edital deve ser no máximo 10.")
         Integer pesoEdital,
 
         NivelProficiencia nivelProficiencia,

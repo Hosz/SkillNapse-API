@@ -100,36 +100,36 @@ class SubmissaoRedacaoValidatorTest {
                 .hasMessageContaining("Não foi possível obter a correção analítica");
 
         FeedbackCorrecaoIaPayload notaInvalida = new FeedbackCorrecaoIaPayload(
-                11.0, List.of(), "Parecer", List.of()
+                1001.0, List.of(), "Parecer", List.of()
         );
         assertThatThrownBy(() -> validator.validarFeedbackIa(notaInvalida))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("compreendida entre 0.0 e 10.0");
+                .hasMessageContaining("compreendida entre 0.0 e 1000.0");
 
         FeedbackCorrecaoIaPayload semCompetencias = new FeedbackCorrecaoIaPayload(
-                8.0, Collections.emptyList(), "Parecer", List.of()
+                800.0, Collections.emptyList(), "Parecer", List.of()
         );
         assertThatThrownBy(() -> validator.validarFeedbackIa(semCompetencias))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("deve conter a avaliação das competências");
 
         FeedbackCorrecaoIaPayload compNotaNegativa = new FeedbackCorrecaoIaPayload(
-                8.0,
+                800.0,
                 List.of(new AvaliacaoCompetenciaIaPayload("Gramática", -1.0, "Comentário", List.of())),
                 "Parecer",
                 List.of()
         );
         assertThatThrownBy(() -> validator.validarFeedbackIa(compNotaNegativa))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("nota de cada competência deve estar compreendida entre 0.0 e 10.0");
+                .hasMessageContaining("nota de cada competência deve estar compreendida entre 0.0 e 1000.0");
     }
 
     @Test
     @DisplayName("validarFeedbackIa deve passar para feedback analítico íntegro")
     void devePassarFeedbackValido() {
         FeedbackCorrecaoIaPayload valido = new FeedbackCorrecaoIaPayload(
-                9.25,
-                List.of(new AvaliacaoCompetenciaIaPayload("Gramática", 9.0, "Excelente", List.of())),
+                920.0,
+                List.of(new AvaliacaoCompetenciaIaPayload("Gramática", 180.0, "Excelente", List.of())),
                 "Parecer analítico completo.",
                 List.of()
         );
