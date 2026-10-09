@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -59,6 +60,9 @@ class BlocoRevisaoServiceTest {
 
     @Mock
     private FlashcardRepository flashcardRepository;
+
+    @Mock
+    private com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator usuarioValidator;
 
     @InjectMocks
     private BlocoRevisaoService blocoRevisaoService;
@@ -297,5 +301,21 @@ class BlocoRevisaoServiceTest {
         assertThat(conteudo.totalCardsCadastrados()).isEqualTo(3L);
         assertThat(conteudo.totalCardsParaRevisar()).isEqualTo(0);
         assertThat(conteudo.cardsParaRevisar()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Deve lançar ForbiddenException ao tentar criar bloco de revisão com usuário inativo")
+    void deveLancarForbiddenComUsuarioInativo() {
+        when(blocoRevisaoFinder.buscarUsuario(usuario.getId())).thenReturn(usuario);
+        org.mockito.Mockito.doThrow(new com.kyofoundation.skillnapse.common.exception.ForbiddenException("Usuário inativo ou bloqueado no sistema."))
+                .when(usuarioValidator).validarUsuarioAtivo(usuario);
+
+        CriarBlocoRevisaoTemplateRequest request = new CriarBlocoRevisaoTemplateRequest(
+                template.getId(), DiaSemana.QUINTA, LocalTime.of(19, 0), LocalTime.of(20, 0), materia.getId(), List.of()
+        );
+
+        assertThatThrownBy(() -> blocoRevisaoService.criarBlocoRevisaoTemplate(usuario.getId(), request))
+                .isInstanceOf(com.kyofoundation.skillnapse.common.exception.ForbiddenException.class)
+                .hasMessage("Usuário inativo ou bloqueado no sistema.");
     }
 }

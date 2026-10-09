@@ -2,6 +2,7 @@ package com.kyofoundation.skillnapse.modules.gamificacao.service;
 
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
 import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
+import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
 import com.kyofoundation.skillnapse.modules.gamificacao.dto.request.AtualizarMetaDiariaRequest;
 import com.kyofoundation.skillnapse.modules.gamificacao.dto.response.MetaDiariaResponse;
 import com.kyofoundation.skillnapse.modules.gamificacao.dto.response.PainelGamificacaoResponse;
@@ -31,6 +32,7 @@ import java.util.UUID;
 public class MetaDiariaService {
 
     private final UserFinder userFinder;
+    private final UsuarioValidator usuarioValidator;
     private final MetaDiariaFinder metaDiariaFinder;
     private final MetaDiariaValidator metaDiariaValidator;
     private final MetaDiariaRepository metaDiariaRepository;
@@ -42,6 +44,8 @@ public class MetaDiariaService {
     @Transactional(readOnly = true)
     public MetaDiariaResponse obterConfiguracaoMetas(UUID usuarioId) {
         Usuario usuario = userFinder.findById(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         MetaDiaria meta = metaDiariaFinder.buscarOuCriar(usuario);
         return GamificacaoMapper.toMetaResponse(meta);
     }
@@ -49,6 +53,8 @@ public class MetaDiariaService {
     @Transactional
     public MetaDiariaResponse atualizarMetas(UUID usuarioId, AtualizarMetaDiariaRequest request) {
         Usuario usuario = userFinder.findById(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         metaDiariaValidator.validarAtualizacao(request);
 
         MetaDiaria meta = metaDiariaFinder.buscarOuCriar(usuario);
@@ -61,6 +67,8 @@ public class MetaDiariaService {
     @Transactional(readOnly = true)
     public ProgressoMetaDiariaResponse obterProgressoDiario(UUID usuarioId, LocalDate dataReferencia) {
         Usuario usuario = userFinder.findById(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         MetaDiaria meta = metaDiariaFinder.buscarOuCriar(usuario);
 
         LocalDate data = dataReferencia != null ? dataReferencia : LocalDate.now();
@@ -76,6 +84,9 @@ public class MetaDiariaService {
 
     @Transactional
     public PainelGamificacaoResponse obterPainelCompleto(UUID usuarioId, LocalDate dataReferencia) {
+        Usuario usuario = userFinder.findById(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         StatusOfensivaResponse ofensiva = ofensivaService.obterStatusOfensiva(usuarioId);
         ProgressoMetaDiariaResponse progresso = obterProgressoDiario(usuarioId, dataReferencia);
         return GamificacaoMapper.toPainelResponse(ofensiva, progresso);

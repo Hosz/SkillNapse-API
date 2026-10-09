@@ -2,6 +2,7 @@ package com.kyofoundation.skillnapse.modules.gamificacao.service;
 
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
 import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
+import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
 import com.kyofoundation.skillnapse.modules.gamificacao.dto.response.StatusOfensivaResponse;
 import com.kyofoundation.skillnapse.modules.gamificacao.entity.OfensivaUsuario;
 import com.kyofoundation.skillnapse.modules.gamificacao.finder.OfensivaUsuarioFinder;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class OfensivaService {
 
     private final UserFinder userFinder;
+    private final UsuarioValidator usuarioValidator;
     private final OfensivaUsuarioFinder ofensivaUsuarioFinder;
     private final OfensivaUsuarioRepository ofensivaUsuarioRepository;
     private final CalculoOfensivaSupport calculoOfensivaSupport;
@@ -27,6 +29,8 @@ public class OfensivaService {
     @Transactional
     public StatusOfensivaResponse obterStatusOfensiva(UUID usuarioId) {
         Usuario usuario = userFinder.findById(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         OfensivaUsuario ofensiva = ofensivaUsuarioFinder.buscarOuCriar(usuario);
 
         LocalDate hoje = LocalDate.now();
@@ -44,6 +48,8 @@ public class OfensivaService {
     @Transactional
     public StatusOfensivaResponse registrarEstudo(UUID usuarioId, LocalDate dataEstudo) {
         Usuario usuario = userFinder.findById(usuarioId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         LocalDate data = dataEstudo != null ? dataEstudo : LocalDate.now();
 
         OfensivaUsuario ofensiva = ofensivaUsuarioFinder.buscarOuCriar(usuario);
@@ -62,6 +68,8 @@ public class OfensivaService {
         if (usuario == null) {
             return;
         }
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
         LocalDate data = dataEstudo != null ? dataEstudo : LocalDate.now();
         OfensivaUsuario ofensiva = ofensivaUsuarioFinder.buscarOuCriar(usuario);
         calculoOfensivaSupport.registrarEstudo(ofensiva, data);

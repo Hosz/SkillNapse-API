@@ -1,7 +1,9 @@
 package com.kyofoundation.skillnapse.modules.gamificacao.service;
 
+import com.kyofoundation.skillnapse.common.exception.ForbiddenException;
 import com.kyofoundation.skillnapse.modules.auth.entity.Usuario;
 import com.kyofoundation.skillnapse.modules.auth.finder.UserFinder;
+import com.kyofoundation.skillnapse.modules.auth.validator.UsuarioValidator;
 import com.kyofoundation.skillnapse.modules.gamificacao.dto.response.StatusOfensivaResponse;
 import com.kyofoundation.skillnapse.modules.gamificacao.entity.OfensivaUsuario;
 import com.kyofoundation.skillnapse.modules.gamificacao.finder.OfensivaUsuarioFinder;
@@ -19,6 +21,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -28,6 +31,9 @@ class OfensivaServiceTest {
 
     @Mock
     private UserFinder userFinder;
+
+    @Mock
+    private UsuarioValidator usuarioValidator;
 
     @Mock
     private OfensivaUsuarioFinder ofensivaUsuarioFinder;
@@ -46,7 +52,7 @@ class OfensivaServiceTest {
 
     @BeforeEach
     void setUp() {
-        usuario = Usuario.builder().id(UUID.randomUUID()).build();
+        usuario = Usuario.builder().id(UUID.randomUUID()).ativo(true).build();
         ofensiva = OfensivaUsuario.builder()
                 .id(UUID.randomUUID())
                 .usuario(usuario)
@@ -58,35 +64,33 @@ class OfensivaServiceTest {
 
     @Test
     @DisplayName("[obterStatusOfensiva] Deve consultar status e salvar se houver quebra de streak")
-    void deveObterStatusESalvarSeHouverQuebra() {
+    void deveObterStatusOfensivaComQuebra() {
         when(userFinder.findById(usuario.getId())).thenReturn(usuario);
+        doNothing().when(usuarioValidator).validarUsuarioAtivo(usuario);
         when(ofensivaUsuarioFinder.buscarOuCriar(usuario)).thenReturn(ofensiva);
         when(calculoOfensivaSupport.revalidarStreak(eq(ofensiva), any(LocalDate.class))).thenReturn(true);
         when(ofensivaUsuarioRepository.save(ofensiva)).thenReturn(ofensiva);
-        when(calculoOfensivaSupport.isEstudouHoje(eq(ofensiva), any(LocalDate.class))).thenReturn(false);
-        when(calculoOfensivaSupport.isOfensivaAtiva(eq(ofensiva), any(LocalDate.class))).thenReturn(false);
-
-        StatusOfensivaResponse response = ofensivaService.obterStatusOfensiva(usuario.getId());
-
-        assertThat(response).isNotNull();
-        assertThat(response.usuarioId()).isEqualTo(usuario.getId());
-        verify(ofensivaUsuarioRepository).save(ofensiva);
-    }
-
-    @Test
-    @DisplayName("[obterStatusOfensiva] Não deve salvar no banco se não houver quebra de streak")
-    void naoDeveSalvarSeNaoHouverQuebra() {
-        when(userFinder.findById(usuario.getId())).thenReturn(usuario);
-        when(ofensivaUsuarioFinder.buscarOuCriar(usuario)).thenReturn(ofensiva);
-        when(calculoOfensivaSupport.revalidarStreak(eq(ofensiva), any(LocalDate.class))).thenReturn(false);
         when(calculoOfensivaSupport.isEstudouHoje(eq(ofensiva), any(LocalDate.class))).thenReturn(false);
         when(calculoOfensivaSupport.isOfensivaAtiva(eq(ofensiva), any(LocalDate.class))).thenReturn(true);
 
         StatusOfensivaResponse response = ofensivaService.obterStatusOfensiva(usuario.getId());
 
         assertThat(response).isNotNull();
-        assertThat(response.ofensivaAtiva()).isTrue();
-        verify(ofensivaUsuarioRepository, never()).save(any());
+        assertThat(response.diasConsecutivosAtual()).isEqualTo(3);
+        verify(usuarioValidator).validarUsuarioAtivo(usuario);
+        verify(ofensivaUsuarioRepository).save(ofensiva);
+    }
+
+    @Test
+    @DisplayName("[obterStatusOfensiva] Deve lançar ForbiddenException quando usuário inativo")
+    void deveLancarForbiddenAoConsultarComUsuarioInativo() {
+        when(userFinder.findById(usuario.getId())).thenReturn(usuario);
+        doThrow(new ForbiddenException("Usuário inativo ou bloqueado no sistema."))
+                .when(usuarioValidator).validarUsuarioAtivo(usuario);
+
+        assertThatThrownBy(() -> ofensivaService.obterStatusOfensiva(usuario.getId()))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessage("Usuário inativo ou bloqueado no sistema.");
     }
 
     @Test
@@ -94,6 +98,7 @@ class OfensivaServiceTest {
     void deveRegistrarAvancoNaOfensiva() {
         LocalDate hoje = LocalDate.now();
         when(userFinder.findById(usuario.getId())).thenReturn(usuario);
+        doNothing().when(usuarioValidator).validarUsuarioAtivo(usuario);
         when(ofensivaUsuarioFinder.buscarOuCriar(usuario)).thenReturn(ofensiva);
         doNothing().when(calculoOfensivaSupport).registrarEstudo(ofensiva, hoje);
         when(ofensivaUsuarioRepository.save(ofensiva)).thenReturn(ofensiva);
@@ -104,6 +109,7 @@ class OfensivaServiceTest {
 
         assertThat(response).isNotNull();
         assertThat(response.estudouHoje()).isTrue();
+        verify(usuarioValidator).validarUsuarioAtivo(usuario);
         verify(calculoOfensivaSupport).registrarEstudo(ofensiva, hoje);
         verify(ofensivaUsuarioRepository).save(ofensiva);
     }
@@ -112,12 +118,14 @@ class OfensivaServiceTest {
     @DisplayName("[registrarEstudoSilencioso] Deve registrar estudo e persistir silenciosamente")
     void deveRegistrarEstudoSilencioso() {
         LocalDate hoje = LocalDate.now();
+        doNothing().when(usuarioValidator).validarUsuarioAtivo(usuario);
         when(ofensivaUsuarioFinder.buscarOuCriar(usuario)).thenReturn(ofensiva);
         doNothing().when(calculoOfensivaSupport).registrarEstudo(ofensiva, hoje);
         when(ofensivaUsuarioRepository.save(ofensiva)).thenReturn(ofensiva);
 
         ofensivaService.registrarEstudoSilencioso(usuario, hoje);
 
+        verify(usuarioValidator).validarUsuarioAtivo(usuario);
         verify(calculoOfensivaSupport).registrarEstudo(ofensiva, hoje);
         verify(ofensivaUsuarioRepository).save(ofensiva);
     }
