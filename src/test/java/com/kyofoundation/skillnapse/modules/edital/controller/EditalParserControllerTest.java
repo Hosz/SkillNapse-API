@@ -68,7 +68,7 @@ class EditalParserControllerTest {
                 UUID.randomUUID(), "edital.pdf", null, StatusRascunhoEdital.AGUARDANDO_APROVACAO, arvore, Instant.now()
         );
 
-        when(editalParserService.uploadEditalPdf(eq(userId), any())).thenReturn(response);
+        when(editalParserService.uploadEditalPdf(eq(userId), any(), any())).thenReturn(response);
 
         mockMvc.perform(multipart("/api/v1/editais/parse")
                         .file(arquivo)
@@ -76,6 +76,30 @@ class EditalParserControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.nomeArquivo").value("edital.pdf"))
                 .andExpect(jsonPath("$.conteudo.nomeConcurso").value("Concurso BB"));
+    }
+
+    @Test
+    @DisplayName("Deve fazer upload de edital especificando cargo alvo com sucesso")
+    void deveFazerUploadDeEditalComCargoAlvo() throws Exception {
+        UUID userId = UUID.randomUUID();
+        MockMultipartFile arquivo = new MockMultipartFile(
+                "arquivo", "edital_pf.pdf", "application/pdf", "%PDF-1.4 mock".getBytes()
+        );
+
+        EditalArvoreEstruturada arvore = new EditalArvoreEstruturada("Polícia Federal", "Agente", List.of());
+        RascunhoEditalResponse response = new RascunhoEditalResponse(
+                UUID.randomUUID(), "edital_pf.pdf", null, StatusRascunhoEdital.AGUARDANDO_APROVACAO, arvore, Instant.now()
+        );
+
+        when(editalParserService.uploadEditalPdf(eq(userId), any(), eq("Agente de Polícia"))).thenReturn(response);
+
+        mockMvc.perform(multipart("/api/v1/editais/parse")
+                        .file(arquivo)
+                        .param("cargoAlvo", "Agente de Polícia")
+                        .with(jwt().jwt(builder -> builder.subject(userId.toString()))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nomeArquivo").value("edital_pf.pdf"))
+                .andExpect(jsonPath("$.conteudo.nomeConcurso").value("Polícia Federal"));
     }
 
     @Test

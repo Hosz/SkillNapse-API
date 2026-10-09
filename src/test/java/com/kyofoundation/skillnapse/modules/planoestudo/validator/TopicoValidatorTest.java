@@ -51,18 +51,18 @@ class TopicoValidatorTest {
     }
 
     @Test
-    @DisplayName("Deve lancar BadRequestException quando peso do edital for menor que 1 ou maior que 5")
+    @DisplayName("Deve lancar BadRequestException quando peso do edital for menor que 1 ou maior que 10")
     void deveLancarExcecaoQuandoPesoInvalido() {
         CriarTopicoRequest pesoMenor = new CriarTopicoRequest("Topico", null, 0, NivelProficiencia.INICIANTE, 0);
-        CriarTopicoRequest pesoMaior = new CriarTopicoRequest("Topico", null, 6, NivelProficiencia.INICIANTE, 0);
+        CriarTopicoRequest pesoMaior = new CriarTopicoRequest("Topico", null, 11, NivelProficiencia.INICIANTE, 0);
 
         assertThatThrownBy(() -> validator.validarCriacao(pesoMenor))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessage("O peso no edital deve ser um valor entre 1 e 5.");
+                .hasMessage("O peso no edital deve ser um valor entre 1 e 10.");
 
         assertThatThrownBy(() -> validator.validarCriacao(pesoMaior))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessage("O peso no edital deve ser um valor entre 1 e 5.");
+                .hasMessage("O peso no edital deve ser um valor entre 1 e 10.");
     }
 
     @Test

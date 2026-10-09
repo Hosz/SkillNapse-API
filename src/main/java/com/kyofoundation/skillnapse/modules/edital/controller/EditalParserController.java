@@ -57,9 +57,11 @@ public class EditalParserController {
     public ResponseEntity<RascunhoEditalResponse> uploadEditalPdf(
             @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt,
             @Parameter(description = "Arquivo PDF do edital a ser processado (máx 25MB)")
-            @RequestParam("arquivo") MultipartFile arquivo) {
+            @RequestParam("arquivo") MultipartFile arquivo,
+            @Parameter(description = "Cargo alvo desejado para filtrar e estruturar o conteúdo programático (opcional)")
+            @RequestParam(value = "cargoAlvo", required = false) String cargoAlvo) {
         UUID userId = UUID.fromString(jwt.getSubject());
-        return ResponseEntity.status(HttpStatus.CREATED).body(editalParserService.uploadEditalPdf(userId, arquivo));
+        return ResponseEntity.status(HttpStatus.CREATED).body(editalParserService.uploadEditalPdf(userId, arquivo, cargoAlvo));
     }
 
     @GetMapping("/rascunhos")

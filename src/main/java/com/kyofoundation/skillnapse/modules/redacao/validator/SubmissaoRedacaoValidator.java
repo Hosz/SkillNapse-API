@@ -51,8 +51,8 @@ public class SubmissaoRedacaoValidator {
         if (feedback == null) {
             throw new BadRequestException("Não foi possível obter a correção analítica da IA.");
         }
-        if (feedback.notaGeral() == null || feedback.notaGeral() < 0.0 || feedback.notaGeral() > 10.0) {
-            throw new BadRequestException("A nota geral da redação deve estar compreendida entre 0.0 e 10.0.");
+        if (feedback.notaGeral() == null || feedback.notaGeral() < 0.0 || feedback.notaGeral() > 1000.0) {
+            throw new BadRequestException("A nota geral da redação deve estar compreendida entre 0.0 e 1000.0.");
         }
         if (feedback.competencias() == null || feedback.competencias().isEmpty()) {
             throw new BadRequestException("O feedback da IA deve conter a avaliação das competências.");
@@ -61,8 +61,8 @@ public class SubmissaoRedacaoValidator {
             if (comp.nomeCompetencia() == null || comp.nomeCompetencia().isBlank()) {
                 throw new BadRequestException("A competência avaliada deve possuir um nome válido.");
             }
-            if (comp.nota() == null || comp.nota() < 0.0 || comp.nota() > 10.0) {
-                throw new BadRequestException("A nota de cada competência deve estar compreendida entre 0.0 e 10.0.");
+            if (comp.nota() == null || comp.nota() < 0.0 || comp.nota() > 1000.0) {
+                throw new BadRequestException("A nota de cada competência deve estar compreendida entre 0.0 e 1000.0.");
             }
             if (comp.comentarios() == null || comp.comentarios().isBlank()) {
                 throw new BadRequestException("A competência avaliada deve possuir comentários pedagógicos.");

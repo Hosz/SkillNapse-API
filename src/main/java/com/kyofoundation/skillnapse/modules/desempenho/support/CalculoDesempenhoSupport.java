@@ -14,7 +14,7 @@ public class CalculoDesempenhoSupport {
 
     private static final double LIMIAR_CRITICO = 60.0;
     private static final double LIMIAR_ESTAVEL = 75.0;
-    private static final int PESO_ALTO_MINIMO = 3;
+    private static final int PESO_ALTO_MINIMO = 6;
     private static final long MINIMO_TENTATIVAS_ESTAVEL = 3L;
 
     public double calcularTaxaAcerto(Long totalTentativas, Long totalAcertos) {

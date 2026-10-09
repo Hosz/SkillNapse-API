@@ -32,10 +32,10 @@ class CalculoDesempenhoSupportTest {
     }
 
     @Test
-    @DisplayName("Deve classificar topico como CRITICO quando taxa < 60% e peso >= 3")
+    @DisplayName("Deve classificar topico como CRITICO quando taxa < 60% e peso >= 6")
     void deveClassificarComoCriticoPorPeso() {
         NivelCriticidadeTopico criticidade = support.determinarCriticidade(
-                10L, 50.0, 4, NivelProficiencia.INTERMEDIARIO
+                10L, 50.0, 7, NivelProficiencia.INTERMEDIARIO
         );
         assertThat(criticidade).isEqualTo(NivelCriticidadeTopico.CRITICO);
     }

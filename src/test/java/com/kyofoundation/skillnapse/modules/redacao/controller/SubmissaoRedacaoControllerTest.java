@@ -28,11 +28,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.mock.web.MockMultipartFile;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -201,5 +204,36 @@ class SubmissaoRedacaoControllerTest {
                         .with(jwt().jwt(builder -> builder.subject(userId.toString()))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Submissão de redação não encontrada com o id: " + submissaoId));
+    }
+
+    @Test
+    @DisplayName("Deve submeter imagem de redação manuscrita com status 200 OK")
+    void deveSubmeterImagemComSucesso() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID temaId = UUID.randomUUID();
+        MockMultipartFile imagem = new MockMultipartFile(
+                "imagem", "redacao.jpg", "image/jpeg", new byte[]{1, 2, 3}
+        );
+
+        com.kyofoundation.skillnapse.modules.redacao.dto.response.ResultadoSubmissaoImagemResponse response =
+                new com.kyofoundation.skillnapse.modules.redacao.dto.response.ResultadoSubmissaoImagemResponse(
+                        true,
+                        91.0,
+                        "Redação manuscrita transcrita e corrigida com sucesso!",
+                        "Texto transcrito da folha...",
+                        null
+                );
+
+        when(submissaoRedacaoService.submeterRedacaoImagem(eq(userId), eq(temaId), any()))
+                .thenReturn(response);
+
+        mockMvc.perform(multipart("/api/v1/redacoes/submissoes/imagem")
+                        .file(imagem)
+                        .param("temaRedacaoId", temaId.toString())
+                        .with(jwt().jwt(builder -> builder.subject(userId.toString()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.legivel").value(true))
+                .andExpect(jsonPath("$.percentualLegibilidade").value(91.0))
+                .andExpect(jsonPath("$.textoTranscrito").value("Texto transcrito da folha..."));
     }
 }

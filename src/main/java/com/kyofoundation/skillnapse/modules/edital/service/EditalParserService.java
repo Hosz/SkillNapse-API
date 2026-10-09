@@ -48,12 +48,19 @@ public class EditalParserService {
 
     @Transactional
     public RascunhoEditalResponse uploadEditalPdf(UUID userId, MultipartFile arquivo) {
+        return uploadEditalPdf(userId, arquivo, null);
+    }
+
+    @Transactional
+    public RascunhoEditalResponse uploadEditalPdf(UUID userId, MultipartFile arquivo, String cargoAlvo) {
         Usuario usuario = userFinder.findById(userId);
         usuarioValidator.validarUsuarioAtivo(usuario);
         editalUploadValidator.validarArquivo(arquivo);
 
         String pdfExtraido = pdfTextExtractorSupport.extrairTexto(arquivo);
-        PromptRequest promptRequest = editalPromptSupport.criarPromptParaExtracao(pdfExtraido);
+        PromptRequest promptRequest = (cargoAlvo != null && !cargoAlvo.isBlank())
+                ? editalPromptSupport.criarPromptParaExtracao(pdfExtraido, cargoAlvo)
+                : editalPromptSupport.criarPromptParaExtracao(pdfExtraido);
 
         EditalArvoreEstruturada arvoreEstruturada = aiOrchestratorService
                 .generateStructured(promptRequest, EditalArvoreEstruturada.class);

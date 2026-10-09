@@ -27,6 +27,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.kyofoundation.skillnapse.modules.redacao.dto.payload.AvaliacaoLegibilidadeIaPayload;
+import com.kyofoundation.skillnapse.modules.redacao.dto.response.ResultadoSubmissaoImagemResponse;
+import com.kyofoundation.skillnapse.modules.redacao.support.PromptRedacaoMultimodalSupport;
+import com.kyofoundation.skillnapse.modules.redacao.validator.RedacaoImagemUploadValidator;
+import org.springframework.core.io.Resource;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
+import org.springframework.web.multipart.MultipartFile;
+
 @Service
 @RequiredArgsConstructor
 public class SubmissaoRedacaoService {
@@ -35,9 +44,11 @@ public class SubmissaoRedacaoService {
     private final UsuarioValidator usuarioValidator;
     private final TemaRedacaoFinder temaRedacaoFinder;
     private final SubmissaoRedacaoValidator submissaoRedacaoValidator;
+    private final RedacaoImagemUploadValidator redacaoImagemUploadValidator;
     private final SubmissaoRedacaoFinder submissaoRedacaoFinder;
     private final SubmissaoRedacaoRepository submissaoRedacaoRepository;
     private final PromptCorrecaoRedacaoSupport promptCorrecaoRedacaoSupport;
+    private final PromptRedacaoMultimodalSupport promptRedacaoMultimodalSupport;
     private final AiOrchestratorService aiOrchestratorService;
     private final JsonFeedbackRedacaoSupport jsonFeedbackRedacaoSupport;
 
@@ -94,5 +105,63 @@ public class SubmissaoRedacaoService {
 
         FeedbackCorrecaoIaPayload feedback = jsonFeedbackRedacaoSupport.desserializar(submissao.getFeedbackIaJson());
         return SubmissaoRedacaoMapper.toResponse(submissao, feedback);
+    }
+
+    @Transactional
+    public ResultadoSubmissaoImagemResponse submeterRedacaoImagem(UUID userId, UUID temaRedacaoId, MultipartFile imagem) {
+        redacaoImagemUploadValidator.validarImagem(imagem);
+
+        Usuario usuario = userFinder.findById(userId);
+        usuarioValidator.validarUsuarioAtivo(usuario);
+
+        TemaRedacao tema = temaRedacaoFinder.findById(temaRedacaoId);
+        submissaoRedacaoValidator.validarPropriedadeTema(usuario, tema);
+
+        PromptRequest promptRequest = promptRedacaoMultimodalSupport.construirPromptMultimodal(tema);
+        MimeType mimeType = MimeTypeUtils.parseMimeType(imagem.getContentType());
+        Resource mediaResource = imagem.getResource();
+
+        AvaliacaoLegibilidadeIaPayload resultadoIa = aiOrchestratorService.generateStructuredMultimodal(
+                promptRequest,
+                mimeType,
+                mediaResource,
+                AvaliacaoLegibilidadeIaPayload.class
+        );
+
+        if (resultadoIa == null || !resultadoIa.legivel() ||
+                resultadoIa.percentualLegibilidade() == null ||
+                resultadoIa.percentualLegibilidade() < PromptRedacaoMultimodalSupport.LIMIAR_LEGIBILIDADE_MINIMO) {
+            double percentual = (resultadoIa != null && resultadoIa.percentualLegibilidade() != null)
+                    ? resultadoIa.percentualLegibilidade()
+                    : 0.0;
+            String msg = (resultadoIa != null && resultadoIa.justificativaIlegibilidade() != null && !resultadoIa.justificativaIlegibilidade().isBlank())
+                    ? resultadoIa.justificativaIlegibilidade()
+                    : "Legibilidade insuficiente (" + percentual + "%). Para garantir uma avaliação justa e precisa, recomendamos redigir ou transcrever o texto manualmente.";
+            return new ResultadoSubmissaoImagemResponse(false, percentual, msg, null, null);
+        }
+
+        FeedbackCorrecaoIaPayload feedback = resultadoIa.correcao();
+        submissaoRedacaoValidator.validarFeedbackIa(feedback);
+
+        String feedbackJson = jsonFeedbackRedacaoSupport.serializar(feedback);
+        Instant momento = Instant.now();
+
+        SubmeterRedacaoRequest requestSimulado = new SubmeterRedacaoRequest(
+                temaRedacaoId,
+                resultadoIa.textoTranscrito() != null ? resultadoIa.textoTranscrito() : ""
+        );
+
+        SubmissaoRedacao entity = SubmissaoRedacaoMapper.toEntity(
+                requestSimulado, usuario, tema, feedback, feedbackJson, momento
+        );
+        SubmissaoRedacao salva = submissaoRedacaoRepository.save(entity);
+
+        return new ResultadoSubmissaoImagemResponse(
+                true,
+                resultadoIa.percentualLegibilidade(),
+                "Redação manuscrita transcrita e corrigida com sucesso!",
+                resultadoIa.textoTranscrito(),
+                SubmissaoRedacaoMapper.toResponse(salva, feedback)
+        );
     }
 }

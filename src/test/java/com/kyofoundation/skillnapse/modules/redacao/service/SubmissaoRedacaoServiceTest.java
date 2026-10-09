@@ -18,6 +18,8 @@ import com.kyofoundation.skillnapse.modules.redacao.finder.TemaRedacaoFinder;
 import com.kyofoundation.skillnapse.modules.redacao.repository.SubmissaoRedacaoRepository;
 import com.kyofoundation.skillnapse.modules.redacao.support.JsonFeedbackRedacaoSupport;
 import com.kyofoundation.skillnapse.modules.redacao.support.PromptCorrecaoRedacaoSupport;
+import com.kyofoundation.skillnapse.modules.redacao.support.PromptRedacaoMultimodalSupport;
+import com.kyofoundation.skillnapse.modules.redacao.validator.RedacaoImagemUploadValidator;
 import com.kyofoundation.skillnapse.modules.redacao.validator.SubmissaoRedacaoValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -64,6 +66,12 @@ class SubmissaoRedacaoServiceTest {
 
     @Mock
     private PromptCorrecaoRedacaoSupport promptCorrecaoRedacaoSupport;
+
+    @Mock
+    private PromptRedacaoMultimodalSupport promptRedacaoMultimodalSupport;
+
+    @Mock
+    private RedacaoImagemUploadValidator redacaoImagemUploadValidator;
 
     @Mock
     private AiOrchestratorService aiOrchestratorService;
@@ -195,5 +203,90 @@ class SubmissaoRedacaoServiceTest {
         assertThat(response.feedback()).isEqualTo(feedback);
 
         verify(submissaoRedacaoValidator).validarPropriedadeSubmissao(usuario, submissao);
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar submissão por imagem quando legibilidade for inferior a 85%")
+    void deveRejeitarSubmissaoImagemQuandoLegibilidadeForMenorQue85() {
+        org.springframework.mock.web.MockMultipartFile imagem = new org.springframework.mock.web.MockMultipartFile(
+                "imagem", "folha.jpg", "image/jpeg", new byte[]{1, 2, 3}
+        );
+
+        when(userFinder.findById(usuario.getId())).thenReturn(usuario);
+        when(temaRedacaoFinder.findById(tema.getId())).thenReturn(tema);
+
+        PromptRequest promptRequest = new PromptRequest("prompt");
+        when(promptRedacaoMultimodalSupport.construirPromptMultimodal(tema)).thenReturn(promptRequest);
+
+        com.kyofoundation.skillnapse.modules.redacao.dto.payload.AvaliacaoLegibilidadeIaPayload resultadoIa =
+                new com.kyofoundation.skillnapse.modules.redacao.dto.payload.AvaliacaoLegibilidadeIaPayload(
+                        false, 72.0, "Caligrafia ilegível no 2o parágrafo.", null, null
+                );
+
+        when(aiOrchestratorService.generateStructuredMultimodal(
+                eq(promptRequest), any(), any(), eq(com.kyofoundation.skillnapse.modules.redacao.dto.payload.AvaliacaoLegibilidadeIaPayload.class)
+        )).thenReturn(resultadoIa);
+
+        com.kyofoundation.skillnapse.modules.redacao.dto.response.ResultadoSubmissaoImagemResponse response =
+                submissaoRedacaoService.submeterRedacaoImagem(usuario.getId(), tema.getId(), imagem);
+
+        assertThat(response).isNotNull();
+        assertThat(response.legivel()).isFalse();
+        assertThat(response.percentualLegibilidade()).isEqualTo(72.0);
+        assertThat(response.mensagem()).contains("Caligrafia ilegível no 2o parágrafo.");
+        assertThat(response.submissao()).isNull();
+
+        verify(redacaoImagemUploadValidator).validarImagem(imagem);
+        verify(submissaoRedacaoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve submeter redação por imagem com sucesso quando legibilidade for maior ou igual a 85%")
+    void deveSubmeterRedacaoImagemComSucessoQuandoLegibilidadeForMaiorOuIgualA85() {
+        org.springframework.mock.web.MockMultipartFile imagem = new org.springframework.mock.web.MockMultipartFile(
+                "imagem", "folha.jpg", "image/jpeg", new byte[]{1, 2, 3}
+        );
+
+        when(userFinder.findById(usuario.getId())).thenReturn(usuario);
+        when(temaRedacaoFinder.findById(tema.getId())).thenReturn(tema);
+
+        PromptRequest promptRequest = new PromptRequest("prompt");
+        when(promptRedacaoMultimodalSupport.construirPromptMultimodal(tema)).thenReturn(promptRequest);
+
+        FeedbackCorrecaoIaPayload feedback = new FeedbackCorrecaoIaPayload(
+                920.0,
+                List.of(new AvaliacaoCompetenciaIaPayload("Competência 1", 190.0, "Excelente", List.of())),
+                "Excelente texto.",
+                List.of()
+        );
+
+        com.kyofoundation.skillnapse.modules.redacao.dto.payload.AvaliacaoLegibilidadeIaPayload resultadoIa =
+                new com.kyofoundation.skillnapse.modules.redacao.dto.payload.AvaliacaoLegibilidadeIaPayload(
+                        true, 92.5, null, "Texto manuscrito transcrito integralmente com 30 linhas...", feedback
+                );
+
+        when(aiOrchestratorService.generateStructuredMultimodal(
+                eq(promptRequest), any(), any(), eq(com.kyofoundation.skillnapse.modules.redacao.dto.payload.AvaliacaoLegibilidadeIaPayload.class)
+        )).thenReturn(resultadoIa);
+
+        when(jsonFeedbackRedacaoSupport.serializar(feedback)).thenReturn("{\"notaGeral\":920.0}");
+        when(submissaoRedacaoRepository.save(any(SubmissaoRedacao.class))).thenAnswer(invocation -> {
+            SubmissaoRedacao arg = invocation.getArgument(0);
+            arg.setId(UUID.randomUUID());
+            return arg;
+        });
+
+        com.kyofoundation.skillnapse.modules.redacao.dto.response.ResultadoSubmissaoImagemResponse response =
+                submissaoRedacaoService.submeterRedacaoImagem(usuario.getId(), tema.getId(), imagem);
+
+        assertThat(response).isNotNull();
+        assertThat(response.legivel()).isTrue();
+        assertThat(response.percentualLegibilidade()).isEqualTo(92.5);
+        assertThat(response.textoTranscrito()).isEqualTo("Texto manuscrito transcrito integralmente com 30 linhas...");
+        assertThat(response.submissao()).isNotNull();
+        assertThat(response.submissao().notaGeral()).isEqualTo(new BigDecimal("920.00"));
+
+        verify(redacaoImagemUploadValidator).validarImagem(imagem);
+        verify(submissaoRedacaoRepository).save(any(SubmissaoRedacao.class));
     }
 }
